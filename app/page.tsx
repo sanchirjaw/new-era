@@ -190,11 +190,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ─── Media Grid ───────────────────────────────────── */}
-      <div className="hidden md:block">
-        <PublicMediaGrid gridLayout={gridLayout} />
-      </div>
-
       {/* ─── More Courses Grid ────────────────────────────── */}
       {moreCourses.length > 0 && (
         <section className="py-20 bg-background">
@@ -249,6 +244,11 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* ─── Media Grid ───────────────────────────────────── */}
+      <div className="hidden md:block">
+        <PublicMediaGrid gridLayout={gridLayout} />
+      </div>
 
       {/* ─── Why Us ───────────────────────────────────────── */}
       <section className="py-20" style={{ background: "var(--ne-hero-bg)" }}>
