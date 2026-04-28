@@ -42,9 +42,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check for NextAuth session first, then admin token
+    // Check NextAuth admin session first, then always fall back to admin token.
+    // In production a non-admin NextAuth session may still exist in cookies.
     const session = await auth()
-    let user = null
+    let user: { id: string; role: string } | null = null
 
     if (session?.user) {
       // NextAuth user - get full user data from database
@@ -52,8 +53,9 @@ export async function PUT(
       if (dbUser?._id && dbUser.role === "admin") {
         user = { id: dbUser._id.toString(), role: dbUser.role }
       }
-    } else {
-      // Admin token
+    }
+
+    if (!user) {
       const token = request.cookies.get("admin-token")?.value
       if (token) {
         user = verifyToken(token)
@@ -126,9 +128,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check for NextAuth session first, then admin token
+    // Check NextAuth admin session first, then always fall back to admin token.
+    // In production a non-admin NextAuth session may still exist in cookies.
     const session = await auth()
-    let user = null
+    let user: { id: string; role: string } | null = null
 
     if (session?.user) {
       // NextAuth user - get full user data from database
@@ -136,8 +139,9 @@ export async function DELETE(
       if (dbUser?._id && dbUser.role === "admin") {
         user = { id: dbUser._id.toString(), role: dbUser.role }
       }
-    } else {
-      // Admin token
+    }
+
+    if (!user) {
       const token = request.cookies.get("admin-token")?.value
       if (token) {
         user = verifyToken(token)
