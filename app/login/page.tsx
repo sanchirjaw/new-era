@@ -90,7 +90,12 @@ function LoginForm() {
       <div className="flex items-center justify-center py-12">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground">Нэвтрэх</h2>
+            <h2
+              className="text-3xl font-black bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
+            >
+              Нэвтрэх
+            </h2>
           </div>
           <form className="space-y-6 rounded-2xl border p-6 md:p-8 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-soft animate-authIn focus-within:shadow-lg transition-all" onSubmit={handleSubmit}>
             <div>

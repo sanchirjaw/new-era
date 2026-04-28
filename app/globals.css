@@ -11,41 +11,42 @@
 
 /* Custom animations for auth forms */
 @keyframes authIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(8px) scale(0.98); 
-  } 
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
-  } 
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .animate-authIn {
   animation: authIn 0.35s ease-out;
 }
 
+/* ─── New Era Brand Tokens ─────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Updated primary color to match New Era blue theme */
-  --primary: oklch(0.55 0.15 250);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Base Shadcn tokens */
+  --background: #ffffff;
+  --foreground: #0d0d0d;
+  --card: #ffffff;
+  --card-foreground: #0d0d0d;
+  --popover: #ffffff;
+  --popover-foreground: #0d0d0d;
+  --primary: #00c87a;
+  --primary-foreground: #ffffff;
+  --secondary: #f4fdf8;
+  --secondary-foreground: #0d0d0d;
+  --muted: #f0faf5;
+  --muted-foreground: #5a7a6a;
+  --accent: #f0faf5;
+  --accent-foreground: #0d0d0d;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: #d4ede2;
+  --input: #d4ede2;
+  --ring: #00c87a;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -53,50 +54,68 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
   --radius-xl: 1rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #f4fdf8;
+  --sidebar-foreground: #0d0d0d;
+  --sidebar-primary: #00c87a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0faf5;
+  --sidebar-accent-foreground: #0d0d0d;
+  --sidebar-border: #d4ede2;
+  --sidebar-ring: #00c87a;
   --shadow-soft: 0 8px 24px rgba(0,0,0,0.08);
+
+  /* New Era brand gradient */
+  --ne-grad: linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%);
+  --ne-btn-bg: linear-gradient(135deg, #00c87a 0%, #7B61FF 100%);
+  --ne-accent: #00c87a;
+  --ne-hero-bg: linear-gradient(160deg, #f0fdf8 0%, #ffffff 50%, #f5f0ff 100%);
+  --ne-orb-1: radial-gradient(circle, rgba(0,229,160,0.18) 0%, transparent 70%);
+  --ne-orb-2: radial-gradient(circle, rgba(123,97,255,0.12) 0%, transparent 70%);
+  --ne-card-bg: #ffffff;
 }
 
 .dark {
-  --background: oklch(0.12 0.04 250);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.15 0.05 250);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.15 0.05 250);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.22 0.06 250);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0.06 250);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.22 0.06 250);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #0c0720;
+  --foreground: #f0ecff;
+  --card: #1a0c38;
+  --card-foreground: #f0ecff;
+  --popover: #1a0c38;
+  --popover-foreground: #f0ecff;
+  --primary: #00E5A0;
+  --primary-foreground: #0c0720;
+  --secondary: #231545;
+  --secondary-foreground: #f0ecff;
+  --muted: #231545;
+  --muted-foreground: #9d8ec7;
+  --accent: #231545;
+  --accent-foreground: #f0ecff;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.25 0.07 250);
-  --input: oklch(0.25 0.07 250);
-  --ring: oklch(0.439 0 0);
+  --border: #3a1f6e;
+  --input: #3a1f6e;
+  --ring: #7B61FF;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.18 0.04 250);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.06 250);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.25 0.07 250);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar: #150930;
+  --sidebar-foreground: #f0ecff;
+  --sidebar-primary: #00E5A0;
+  --sidebar-primary-foreground: #0c0720;
+  --sidebar-accent: #231545;
+  --sidebar-accent-foreground: #f0ecff;
+  --sidebar-border: #3a1f6e;
+  --sidebar-ring: #7B61FF;
+
+  /* Dark mode brand tokens */
+  --ne-grad: linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%);
+  --ne-btn-bg: linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%);
+  --ne-accent: #00E5A0;
+  --ne-hero-bg: linear-gradient(160deg, #0c0720 0%, #150930 50%, #1a0c38 100%);
+  --ne-orb-1: radial-gradient(circle, rgba(0,229,160,0.15) 0%, transparent 70%);
+  --ne-orb-2: radial-gradient(circle, rgba(123,97,255,0.20) 0%, transparent 70%);
+  --ne-card-bg: #1a0c38;
 }
 
 @theme inline {
@@ -128,8 +147,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: var(--radius-xl);
-  /* Added New Era brand colors */
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-outfit), var(--font-dm-sans), system-ui, sans-serif;
+  --font-display: var(--font-outfit), system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), monospace;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -149,15 +169,92 @@
   }
 }
 
-/* Added New Era specific styles */
-.new-era-gradient {
-  background: linear-gradient(135deg, #5b7fff 0%, #4f6fe7 100%);
+/* ─── New Era Utility Classes ─────────────────────────── */
+
+/* Primary gradient button */
+.ne-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ne-btn-bg) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border-radius: 0.625rem;
+  padding: 0.625rem 1.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.ne-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,229,160,0.35);
+}
+a.ne-btn-primary {
+  background: var(--ne-btn-bg) !important;
+  color: #ffffff !important;
 }
 
-.new-era-blue {
-  color: #5b7fff;
+/* Ghost / outline button */
+.ne-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 600;
+  border-radius: 0.625rem;
+  padding: 0.625rem 1.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  text-decoration: none;
+}
+.ne-btn-ghost:hover {
+  border-color: var(--ne-accent);
+  color: var(--ne-accent);
+  background: rgba(0,229,160,0.06);
 }
 
-.bg-new-era-blue {
-  background-color: #5b7fff;
+/* Card */
+.ne-card {
+  background: var(--ne-card-bg);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow 0.25s, transform 0.25s;
+}
+.ne-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+}
+.dark .ne-card:hover {
+  box-shadow: 0 16px 40px rgba(123,97,255,0.2);
+}
+
+/* Gradient label / badge */
+.ne-label {
+  display: inline-flex;
+  align-items: center;
+  background: var(--ne-grad);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  padding: 0.25rem 0.875rem;
+}
+
+/* Section divider accent */
+.ne-divider {
+  height: 3px;
+  width: 64px;
+  background: var(--ne-grad);
+  border-radius: 999px;
+  margin: 0 auto 2rem;
 }

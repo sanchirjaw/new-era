@@ -16,6 +16,19 @@ import { User, LogOut, BookOpen, Home, GraduationCap } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+const GRAD = "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)"
+
+function GradientText({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={`bg-clip-text text-transparent ${className}`}
+      style={{ backgroundImage: GRAD }}
+    >
+      {children}
+    </span>
+  )
+}
+
 export function Header() {
   const { user, logout } = useAuth()
   const pathname = usePathname()
@@ -24,34 +37,44 @@ export function Header() {
     <header className="border-b bg-background relative z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
+          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <Logo className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">New Era</span>
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-lg"
+              style={{ background: GRAD }}
+            >
+              N
+            </span>
+            <span className="text-xl font-black tracking-tight">
+              New<GradientText>Era</GradientText>
+            </span>
           </Link>
 
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              href="/" 
-              className={`text-muted-foreground hover:text-primary border-b-2 pb-1 transition-colors ${
-                pathname === "/" 
-                  ? "border-primary text-primary" 
-                  : "border-transparent"
+            <Link
+              href="/"
+              className={`font-bold text-lg pb-1 border-b-2 transition-colors ${
+                pathname === "/"
+                  ? "border-transparent"
+                  : "border-transparent text-foreground/70 hover:text-foreground"
               }`}
             >
-              Нүүр
+              {pathname === "/" ? <GradientText>Нүүр</GradientText> : "Нүүр"}
             </Link>
-            <Link 
-              href="/courses" 
-              className={`text-muted-foreground hover:text-primary border-b-2 pb-1 transition-colors ${
-                pathname === "/courses" 
-                  ? "border-primary text-primary" 
-                  : "border-transparent"
+            <Link
+              href="/courses"
+              className={`font-bold text-lg pb-1 border-b-2 transition-colors ${
+                pathname === "/courses"
+                  ? "border-transparent"
+                  : "border-transparent text-foreground/70 hover:text-foreground"
               }`}
             >
-              Хичээлүүд
+              {pathname === "/courses" ? <GradientText>Хичээлүүд</GradientText> : "Хичээлүүд"}
             </Link>
           </nav>
 
+          {/* Right side */}
           <div className="flex items-center space-x-4 relative">
             <ThemeToggle />
             {user ? (
@@ -59,7 +82,10 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
+                      <AvatarFallback
+                        className="text-white font-bold"
+                        style={{ background: GRAD }}
+                      >
                         {user.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -73,8 +99,8 @@ export function Header() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  
-                  {/* Navigation Links - Visible on mobile through dropdown */}
+
+                  {/* Mobile nav links */}
                   <div className="md:hidden">
                     <DropdownMenuItem asChild>
                       <Link href="/" className="cursor-pointer">
@@ -90,7 +116,7 @@ export function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </div>
-                  
+
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
                       <BookOpen className="mr-2 h-4 w-4" />
@@ -112,9 +138,12 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild className="bg-primary hover:bg-primary/90">
-                <Link href="/login">Нэвтрэх</Link>
-              </Button>
+              <a
+                href="/login"
+                className="ne-btn-primary text-sm px-5 py-2"
+              >
+                Нэвтрэх
+              </a>
             )}
           </div>
         </div>

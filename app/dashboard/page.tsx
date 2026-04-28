@@ -125,7 +125,12 @@ export default function DashboardPage() {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Хяналтын самбар</h1>
+          <h1
+            className="text-3xl font-black bg-clip-text text-transparent mb-2"
+            style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
+          >
+            Хяналтын самбар
+          </h1>
           <p className="text-muted-foreground">Тавтай морилно уу! Таны суралцахуйн явц энд байна.</p>
 
 

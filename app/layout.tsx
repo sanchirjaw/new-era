@@ -1,13 +1,28 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Outfit, DM_Sans, Space_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-outfit",
+  weight: ["400", "500", "600", "700", "800", "900"],
+})
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
+})
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
 })
 
 export const metadata: Metadata = {
@@ -27,7 +42,18 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="mn" className={`${inter.variable} antialiased`} suppressHydrationWarning>
+    <html
+      lang="mn"
+      className={`${outfit.variable} ${dmSans.variable} ${spaceMono.variable} antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="font-sans bg-background text-foreground">
         <Providers>
           {children}

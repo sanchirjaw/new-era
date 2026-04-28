@@ -478,7 +478,12 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Миний профайл</h1>
+            <h1
+              className="text-3xl font-black bg-clip-text text-transparent mb-2"
+              style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
+            >
+              Миний профайл
+            </h1>
             <p className="text-muted-foreground">Профайлын мэдээллээ засварлах</p>
           </div>
 

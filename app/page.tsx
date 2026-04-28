@@ -1,13 +1,13 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import PublicMediaGrid from "@/components/public-media-grid"
-import { Play, Clock, Star, Users, Trophy } from "lucide-react"
+import { Play, Star, Users, Trophy } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { getDisplayTitle, getDisplayDescription } from "@/lib/course-utils"
+
+const GRAD = "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)"
 
 interface Stats {
   totalStudents: string
@@ -16,353 +16,323 @@ interface Stats {
 }
 
 interface PlatformFeatures {
-  feature1: {
-    title: string
-    description: string
-    icon: string
-  }
-  feature2: {
-    title: string
-    description: string
-    icon: string
-  }
-  feature3: {
-    title: string
-    description: string
-    icon: string
-  }
+  feature1: { title: string; description: string; icon: string }
+  feature2: { title: string; description: string; icon: string }
+  feature3: { title: string; description: string; icon: string }
 }
 
 export default async function Home() {
-  // Server-side data fetching
   let courses: Course[] = []
-  let stats: Stats = {
-    totalStudents: "0",
-    averageRating: "4.8",
-    completedLessons: "0"
-  }
+  let stats: Stats = { totalStudents: "0", averageRating: "4.8", completedLessons: "0" }
   let features: PlatformFeatures = {
-    feature1: {
-      title: "Хэзээ ч, хаанаас ч",
-      description: "Таны хүссэн цагт, хүссэн газартаас суралцах боломжтой. Интернэт холболттой компьютер, таблет эсвэл утас хүчилтэй.",
-      icon: "🌍"
-    },
-    feature2: {
-      title: "Чанартай агуулга",
-      description: "Мэргэжлийн багш нартай, чанартай видео хичээллүүд. Практик даалгавар, тестүүд болон сертификат.",
-      icon: "🎯"
-    },
-    feature3: {
-      title: "Хувийн хөгжил",
-      description: "Таны хурдад тохируулсан сургалт. Прогресс хяналт, хувийн дэвтэр болон багшийн дэмжлэг.",
-      icon: "📈"
-    }
+    feature1: { title: "Хэзээ ч, хаанаас ч", description: "Таны хүссэн цагт, хүссэн газартаас суралцах боломжтой. Интернэт холболттой компьютер, таблет эсвэл утас хүчилтэй.", icon: "🌍" },
+    feature2: { title: "Чанартай агуулга", description: "Мэргэжлийн багш нартай, чанартай видео хичээллүүд. Практик даалгавар, тестүүд болон сертификат.", icon: "🎯" },
+    feature3: { title: "Хувийн хөгжил", description: "Таны хурдад тохируулсан сургалт. Прогресс хяналт, хувийн дэвтэр болон багшийн дэмжлэг.", icon: "📈" },
   }
   let gridLayout: any = null
 
   try {
-    // Use absolute URL for server-side fetching
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-       process.env.NODE_ENV === 'production' ? 'https://edunewera.mn' : 'http://localhost:3000')
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+        process.env.NODE_ENV === "production" ? "https://edunewera.mn" : "http://localhost:3000")
 
-    // Fetch courses
-    const coursesResponse = await fetch(`${baseUrl}/api/courses`, { next: { revalidate: 60 } })
-    if (coursesResponse.ok) {
-      const coursesData = await coursesResponse.json()
-      courses = coursesData.courses || []
-    }
+    const [coursesRes, statsRes, featuresRes, gridRes] = await Promise.allSettled([
+      fetch(`${baseUrl}/api/courses`, { next: { revalidate: 60 } }),
+      fetch(`${baseUrl}/api/stats`, { next: { revalidate: 300 } }),
+      fetch(`${baseUrl}/api/features`, { next: { revalidate: 3600 } }),
+      fetch(`${baseUrl}/api/media-grid`, { next: { revalidate: 300 } }),
+    ])
 
-    // Fetch stats
-    const statsResponse = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 300 } })
-    if (statsResponse.ok) {
-      const statsData = await statsResponse.json()
-      stats = statsData
+    if (coursesRes.status === "fulfilled" && coursesRes.value.ok) {
+      const d = await coursesRes.value.json(); courses = d.courses || []
     }
-
-    // Fetch features
-    const featuresResponse = await fetch(`${baseUrl}/api/features`, { next: { revalidate: 3600 } })
-    if (featuresResponse.ok) {
-      const featuresData = await featuresResponse.json()
-      if (featuresData.features) {
-        features = featuresData.features
-      }
+    if (statsRes.status === "fulfilled" && statsRes.value.ok) {
+      stats = await statsRes.value.json()
     }
-
-    // Fetch media grid layout
-    const gridResponse = await fetch(`${baseUrl}/api/media-grid`, { next: { revalidate: 300 } })
-    if (gridResponse.ok) {
-      const gridData = await gridResponse.json()
-      if (gridData.layout && gridData.layout.isPublished) {
-        gridLayout = gridData.layout
-      }
+    if (featuresRes.status === "fulfilled" && featuresRes.value.ok) {
+      const d = await featuresRes.value.json(); if (d.features) features = d.features
     }
-  } catch (error) {
-    console.error("Error fetching data:", error)
-    // Use fallback data if fetching fails
+    if (gridRes.status === "fulfilled" && gridRes.value.ok) {
+      const d = await gridRes.value.json(); if (d.layout?.isPublished) gridLayout = d.layout
+    }
+  } catch (e) {
+    console.error("Error fetching data:", e)
   }
 
-  // Get featured course - use first available course or null
   const featuredCourse = courses.length > 0 ? courses[0] : null
+  const moreCourses = courses.slice(1, 6)
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 relative">
-        <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
-          <div className="space-y-8">
-            <Badge className="bg-[#5B7FFF] text-white px-6 py-2 rounded-full text-sm font-medium">
-              {featuredCourse ? `🚀 ${featuredCourse.category || 'Хичээл'}` : '🚀 Хичээл'}
-            </Badge>
+      {/* ─── Hero ─────────────────────────────────────────── */}
+      <section className="relative overflow-hidden" style={{ background: "var(--ne-hero-bg)" }}>
+        {/* Ambient orbs */}
+        <div className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] opacity-60" style={{ background: "var(--ne-orb-1)" }} />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 w-[400px] h-[400px] opacity-50" style={{ background: "var(--ne-orb-2)" }} />
 
-            <div className="space-y-2">
-              <h1 className="text-5xl lg:text-6xl font-bold text-foreground leading-tight">Чанартай хичээллүүд.</h1>
-              <h2 className="text-4xl lg:text-5xl font-bold text-[#5B7FFF] leading-tight">Хэзээ ч, хаанаас ч.</h2>
-            </div>
+        <div className="container mx-auto px-4 py-20 relative">
+          <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+            <div className="space-y-8">
+              {/* Badge */}
+              <span className="ne-label">
+                🚀 {featuredCourse ? featuredCourse.category || "Монголын онлайн сургалт" : "Монголын онлайн сургалт"}
+              </span>
 
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Мэргэжлийн багш нартай, чанартай видео хичээллүүдээр таны ур чадварыг хөгжүүлнэ. Хүссэн, байршаас үл
-              хамааран суралцаарай.
-            </p>
+              {/* Heading */}
+              <div className="space-y-2">
+                <h1 className="text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-tight">
+                  Чанартай{" "}
+                  <span
+                    className="bg-clip-text text-transparent"
+                    style={{ backgroundImage: GRAD }}
+                  >
+                    хичээлүүд.
+                  </span>
+                </h1>
+                <h2 className="text-3xl lg:text-4xl font-bold text-foreground/80 leading-tight">
+                  Хэзээ ч, хаанаас ч.
+                </h2>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="bg-[#5B7FFF] hover:bg-[#4A6FE7] text-white px-8 py-3 rounded-lg">
-                <Link href="/courses">Бүртгүүлэх</Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-gray-300 text-foreground px-8 py-3 rounded-lg bg-transparent"
-              >
-                Хичээллүүдийг үзэх
-              </Button>
-            </div>
-          </div>
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
+                Мэргэжлийн багш нартай, чанартай видео хичээлээр ур чадвараа хөгжүүл.
+                Интернэт холболттой хаанаас ч суралцаарай.
+              </p>
 
-          {/* Featured Course Card */}
-          {featuredCourse ? (
-            <div className="bg-card rounded-2xl shadow-lg border border-border overflow-hidden max-w-sm sm:max-w-md md:max-w-2xl mx-auto">
-              <div className="p-4 sm:p-6 md:p-8">
-                <div className="mb-4 sm:mb-6">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-card-foreground mb-2 sm:mb-3">{getDisplayTitle(featuredCourse.title)}</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground">{getDisplayDescription(featuredCourse.title, featuredCourse.description || "Хичээлийн тайлбар")}</p>
-                </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a href="/courses" className="ne-btn-primary text-base px-8 py-3">
+                  Хичээлүүд үзэх
+                </a>
+                <a href="/register" className="ne-btn-ghost text-base px-8 py-3">
+                  Бүртгүүлэх
+                </a>
+              </div>
 
-                <div className="relative bg-muted rounded-lg sm:rounded-xl aspect-video mb-4 sm:mb-6 flex items-center justify-center border border-border">
-                  {featuredCourse.thumbnailUrl ? (
-                    <img
-                      src={featuredCourse.thumbnailUrl}
-                      alt={featuredCourse.title}
-                      className="w-full h-full object-cover rounded-lg sm:rounded-xl"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#5B7FFF] rounded-full flex items-center justify-center">
-                      <Play className="w-6 w-6 sm:w-8 sm:h-8 text-white ml-1" />
+              {/* Mini stats */}
+              <div className="flex gap-8 pt-2">
+                {[
+                  { val: stats.totalStudents || "100+", label: "Сурагч" },
+                  { val: stats.averageRating || "4.8", label: "Үнэлгээ" },
+                  { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <div
+                      className="text-2xl font-black bg-clip-text text-transparent"
+                      style={{ backgroundImage: GRAD }}
+                    >
+                      {s.val}
                     </div>
-                  )}
-                </div>
+                    <div className="text-xs text-muted-foreground font-medium">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-                <div className="mb-4 sm:mb-6">
-                  <div className="flex items-baseline gap-2 sm:gap-3 mb-2 sm:mb-3">
-                    <span className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-500">₮{featuredCourse.price?.toLocaleString() || "0"}</span>
-                    {featuredCourse.originalPrice && featuredCourse.originalPrice > featuredCourse.price && (
-                      <>
-                        <span className="text-sm sm:text-lg text-muted-foreground line-through">₮{featuredCourse.originalPrice.toLocaleString()}</span>
-                        <Badge className="bg-green-100 text-green-700 text-xs sm:text-sm px-2 sm:px-3 py-1">
-                          SAVE ₮{(featuredCourse.originalPrice - featuredCourse.price).toLocaleString()}
-                        </Badge>
-                      </>
+            {/* Featured Course Card */}
+            {featuredCourse ? (
+              <div className="ne-card overflow-hidden max-w-sm sm:max-w-md md:max-w-lg mx-auto w-full">
+                <div className="p-6 md:p-8">
+                  <h3 className="text-xl md:text-2xl font-bold text-card-foreground mb-2">
+                    {getDisplayTitle(featuredCourse.title)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    {getDisplayDescription(featuredCourse.title, featuredCourse.description || "Хичээлийн тайлбар")}
+                  </p>
+
+                  <div className="relative bg-muted rounded-xl aspect-video mb-5 flex items-center justify-center border border-border overflow-hidden">
+                    {featuredCourse.thumbnailUrl ? (
+                      <img src={featuredCourse.thumbnailUrl} alt={featuredCourse.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: GRAD }}>
+                        <Play className="w-7 h-7 text-white ml-1" />
+                      </div>
                     )}
                   </div>
-                  {!featuredCourse.originalPrice && (
-                    <Badge className="bg-blue-100 text-blue-700 text-xs sm:text-sm px-2 sm:px-3 py-1">Хамгийн сайн үнэ</Badge>
-                  )}
+
+                  <div className="mb-5">
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-2xl md:text-3xl font-black text-orange-500">
+                        ₮{featuredCourse.price?.toLocaleString() || "0"}
+                      </span>
+                      {featuredCourse.originalPrice && featuredCourse.originalPrice > featuredCourse.price && (
+                        <>
+                          <span className="text-base text-muted-foreground line-through">
+                            ₮{featuredCourse.originalPrice.toLocaleString()}
+                          </span>
+                          <span className="ne-label text-xs">
+                            SAVE ₮{(featuredCourse.originalPrice - featuredCourse.price).toLocaleString()}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <a href={`/courses/${featuredCourse._id}`} className="ne-btn-primary w-full text-sm py-3 block text-center">
+                    Хичээлд бүртгүүлэх
+                  </a>
                 </div>
-
-                <Button asChild className="w-full bg-[#5B7FFF] hover:bg-[#4A6FE7] text-white py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base">
-                  <Link href={`/courses/${featuredCourse._id}`}>Хичээлд бүртгүүлэх</Link>
-                </Button>
               </div>
-            </div>
-          ) : (
-            <div className="bg-card rounded-2xl shadow-lg border border-border overflow-hidden max-w-sm sm:max-w-md md:max-w-2xl mx-auto">
-              <div className="p-4 sm:p-6">
-                <div className="animate-pulse">
-                  <div className="h-5 sm:h-6 bg-muted rounded mb-3"></div>
-                  <div className="h-3 bg-muted rounded mb-3 sm:mb-4"></div>
-                  <div className="bg-muted rounded-lg sm:rounded-xl aspect-video mb-3 sm:mb-4"></div>
-                  <div className="h-4 sm:h-5 bg-muted rounded mb-2"></div>
-                  <div className="h-3 bg-muted rounded mb-3 sm:mb-4"></div>
-                  <div className="h-8 sm:h-10 bg-muted rounded"></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Media Grid Section - Hidden on mobile, visible on tablet and up */}
-      <div className="hidden md:block">
-        <PublicMediaGrid gridLayout={gridLayout} />
-      </div>
-
-      {/* Features Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Яагаад Бид?</h2>
-            <p className="text-muted-foreground text-lg">Манай платформын онцлог шинж чанарууд</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {features ? (
-              <>
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <span className="text-2xl">{features.feature1?.icon || "📚"}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">{features.feature1?.title || "Онлайн сургалт"}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {features.feature1?.description || "Хугацаатай, хурдан, хүнсэн сургалт"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <span className="text-2xl">{features.feature2?.icon || "💬"}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">{features.feature2?.title || "Харилцах"}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {features.feature2?.description || "Харилцах, харилцах, харилцах"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <span className="text-2xl">{features.feature3?.icon || "👥"}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">{features.feature3?.title || "Хувь хүн"}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {features.feature3?.description || "Хувь хүн, хувь хүн, хувь хүн"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
             ) : (
-              // Fallback to hardcoded features while loading
-              <>
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <Play className="w-8 h-8 text-[#5B7FFF]" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">Чанартай видео & аудио</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        HD чанартай видео, тод аудио, мөн интерактив элементүүдтэй хичээллүүдээр
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <span className="text-2xl font-bold text-green-600">₮</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">Үнэ хятад & хямд үнэ</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        Өөр өөр төлөвлөгөөтэй, таны хэмжээнд тохирсон үнэтэй сургалтууд
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <Users className="w-8 h-8 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-card-foreground mb-1">Мэргэжлийн багш нар</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        Тус салбарын мэргэжлийн багш нартай, практик туршлагатай сургалтууд
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+              <div className="ne-card overflow-hidden max-w-sm sm:max-w-md md:max-w-lg mx-auto w-full">
+                <div className="p-6 animate-pulse">
+                  <div className="h-6 bg-muted rounded mb-3" />
+                  <div className="h-4 bg-muted rounded mb-5" />
+                  <div className="bg-muted rounded-xl aspect-video mb-5" />
+                  <div className="h-8 bg-muted rounded mb-4" />
+                  <div className="h-10 bg-muted rounded" />
+                </div>
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Statistics Section */}
-      {stats && (
+      {/* ─── Media Grid ───────────────────────────────────── */}
+      <div className="hidden md:block">
+        <PublicMediaGrid gridLayout={gridLayout} />
+      </div>
+
+      {/* ─── More Courses Grid ────────────────────────────── */}
+      {moreCourses.length > 0 && (
         <section className="py-20 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-foreground mb-4">New Era статистик</h2>
-              <p className="text-muted-foreground text-lg">Манай платформ дээр суралцаж буй суралцагчдын амжилт</p>
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="text-center mb-12">
+              <div className="ne-divider" />
+              <h2 className="text-3xl lg:text-4xl font-black text-foreground mb-3">
+                Бусад{" "}
+                <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                  хичээлүүд
+                </span>
+              </h2>
+              <p className="text-muted-foreground">Таны сонирхлыг татах хичээлүүдийг олж нээ</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                <CardContent className="space-y-4 p-0">
-                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                    <Users className="w-8 h-8 text-[#5B7FFF]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {moreCourses.map((course) => (
+                <Link key={course._id} href={`/courses/${course._id}`} className="ne-card block overflow-hidden group">
+                  <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
+                    {course.thumbnailUrl ? (
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
+                        <Play className="w-10 h-10 text-white" />
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-4xl font-bold text-card-foreground mb-1">{stats.totalStudents || "100+"}</div>
-                    <div className="text-card-foreground font-semibold mb-1">Нийт сурагч</div>
-                    <div className="text-sm text-muted-foreground">Идэвхтэй суралцаж буй суралцагчид</div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-card-foreground mb-1 line-clamp-2">{getDisplayTitle(course.title)}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {getDisplayDescription(course.title, course.description || "")}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-orange-500">₮{course.price?.toLocaleString()}</span>
+                      <span
+                        className="text-xs font-bold bg-clip-text text-transparent"
+                        style={{ backgroundImage: GRAD }}
+                      >
+                        Үзэх →
+                      </span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </Link>
+              ))}
+            </div>
 
-              <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                <CardContent className="space-y-4 p-0">
-                  <div className="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center mx-auto">
-                    <Star className="w-8 h-8 text-yellow-500" />
-                  </div>
-                  <div>
-                    <div className="text-4xl font-bold text-card-foreground mb-1">{stats.averageRating || "4.8/5"}</div>
-                    <div className="text-card-foreground font-semibold mb-1">Дундаж үнэлгээ</div>
-                    <div className="text-sm text-muted-foreground">Суралцагчдын сэтгэгдэл</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-8 border border-border shadow-lg rounded-2xl bg-card">
-                <CardContent className="space-y-4 p-0">
-                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
-                    <Trophy className="w-8 h-8 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="text-4xl font-bold text-card-foreground mb-1">{stats.completedLessons || "15,000+"}</div>
-                    <div className="text-card-foreground font-semibold mb-1">Хичээл дуусгасан</div>
-                    <div className="text-sm text-muted-foreground">Амжилттай төгссөн хичээллүүд</div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="text-center mt-10">
+              <a href="/courses" className="ne-btn-ghost text-base px-10 py-3">
+                Бүх хичээлүүд харах
+              </a>
             </div>
           </div>
         </section>
       )}
+
+      {/* ─── Why Us ───────────────────────────────────────── */}
+      <section className="py-20" style={{ background: "var(--ne-hero-bg)" }}>
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-12">
+            <div className="ne-divider" />
+            <h2 className="text-3xl lg:text-4xl font-black text-foreground mb-3">
+              Яагаад{" "}
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                Бид?
+              </span>
+            </h2>
+            <p className="text-muted-foreground">Манай платформын онцлог шинж чанарууд</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              { icon: features.feature1?.icon || "🌍", title: features.feature1?.title || "Хэзээ ч, хаанаас ч", desc: features.feature1?.description || "" },
+              { icon: features.feature2?.icon || "🎯", title: features.feature2?.title || "Чанартай агуулга", desc: features.feature2?.description || "" },
+              { icon: features.feature3?.icon || "📈", title: features.feature3?.title || "Хувийн хөгжил", desc: features.feature3?.description || "" },
+            ].map((f, i) => (
+              <Card key={i} className="ne-card text-center p-8 border-0 shadow-none">
+                <CardContent className="space-y-4 p-0">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto text-2xl"
+                    style={{ background: "var(--ne-grad)", opacity: 0.9 }}
+                  >
+                    {f.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-card-foreground mb-1">{f.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Stats ────────────────────────────────────────── */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-12">
+            <div className="ne-divider" />
+            <h2 className="text-3xl lg:text-4xl font-black text-foreground mb-3">
+              New Era{" "}
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                статистик
+              </span>
+            </h2>
+            <p className="text-muted-foreground">Суралцагчдын амжилт тоо баримтаар</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              { icon: <Users className="w-7 h-7 text-white" />, val: stats.totalStudents || "100+", label: "Нийт сурагч", sub: "Идэвхтэй суралцаж буй" },
+              { icon: <Star className="w-7 h-7 text-white" />, val: stats.averageRating || "4.8/5", label: "Дундаж үнэлгээ", sub: "Суралцагчдын сэтгэгдэл" },
+              { icon: <Trophy className="w-7 h-7 text-white" />, val: stats.completedLessons || "15,000+", label: "Хичээл дуусгасан", sub: "Амжилттай төгссөн" },
+            ].map((s, i) => (
+              <Card key={i} className="ne-card text-center p-8 border-0 shadow-none">
+                <CardContent className="space-y-4 p-0">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
+                    style={{ background: GRAD }}
+                  >
+                    {s.icon}
+                  </div>
+                  <div>
+                    <div
+                      className="text-4xl font-black bg-clip-text text-transparent mb-1"
+                      style={{ backgroundImage: GRAD }}
+                    >
+                      {s.val}
+                    </div>
+                    <div className="text-card-foreground font-bold mb-1">{s.label}</div>
+                    <div className="text-sm text-muted-foreground">{s.sub}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>
