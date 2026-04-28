@@ -9,6 +9,22 @@
   z-index: 9999 !important;
 }
 
+/* Ensure dialogs always render on top of everything including admin sidebar */
+[data-slot="dialog-overlay"] {
+  z-index: 9998 !important;
+}
+[data-slot="dialog-content"] {
+  z-index: 9999 !important;
+}
+[data-slot="dialog-content"] input,
+[data-slot="dialog-content"] textarea,
+[data-slot="dialog-content"] button,
+[data-slot="dialog-content"] select {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 1;
+}
+
 /* Custom animations for auth forms */
 @keyframes authIn {
   from {
