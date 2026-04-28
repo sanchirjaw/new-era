@@ -81,7 +81,9 @@ export class Database {
     
     console.log("Database update result:", { modifiedCount: result.modifiedCount, matchedCount: result.matchedCount })
     
-    return result.modifiedCount > 0
+    // Consider matched documents as success so idempotent updates
+    // (same value sent again) don't surface as false failures.
+    return result.modifiedCount > 0 || result.matchedCount > 0
   }
 
   async deleteUser(id: ObjectId): Promise<boolean> {

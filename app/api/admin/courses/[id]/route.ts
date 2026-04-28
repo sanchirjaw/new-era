@@ -6,10 +6,11 @@ import { ObjectId } from "mongodb"
 // GET /api/admin/courses/[id] - Get course by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const courseId = new ObjectId(params.id)
+    const { id } = await params
+    const courseId = new ObjectId(id)
     const course = await db.getCourseById(courseId)
     
     if (!course) {
@@ -26,7 +27,7 @@ export async function GET(
 // PUT /api/admin/courses/[id] - Update course
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin authentication
@@ -40,7 +41,8 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const courseId = new ObjectId(params.id)
+    const { id } = await params
+    const courseId = new ObjectId(id)
     const updates = await request.json()
 
     // Check if course exists
@@ -66,7 +68,7 @@ export async function PUT(
 // DELETE /api/admin/courses/[id] - Delete course
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin authentication
@@ -80,7 +82,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const courseId = new ObjectId(params.id)
+    const { id } = await params
+    const courseId = new ObjectId(id)
 
     // Check if course exists
     const existingCourse = await db.getCourseById(courseId)

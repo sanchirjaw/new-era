@@ -236,6 +236,8 @@ export default function AdminUsers() {
       const response = await fetch(`/api/admin/users/${courseAccessData.userId}/courses`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        cache: "no-store",
         body: JSON.stringify({ courseIds: courseAccessData.courseIds })
       })
 

@@ -2,20 +2,52 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth-server"
 import { db } from "@/lib/database"
 import { ObjectId } from "mongodb"
+import { auth } from "@/auth"
+
+function parseObjectId(id: string) {
+  if (!ObjectId.isValid(id)) return null
+  return new ObjectId(id)
+}
 
 // GET /api/admin/users/[id]/courses - Get user's enrolled courses
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = new ObjectId(params.id)
-    
-    // For build-time compatibility, return a simple response
-    // The actual user course data will be fetched when needed at runtime
-    return NextResponse.json({ 
-      message: "User courses endpoint available",
-      userId: params.id 
+    const session = await auth()
+    let adminUser: { id: string; role: string } | null = null
+
+    if (session?.user?.email) {
+      const dbUser = await db.getUserByEmail(session.user.email)
+      if (dbUser?._id && dbUser.role === "admin") {
+        adminUser = { id: dbUser._id.toString(), role: dbUser.role }
+      }
+    }
+
+    if (!adminUser) {
+      const token = request.cookies.get("admin-token")?.value
+      if (token) adminUser = verifyToken(token)
+    }
+
+    if (!adminUser || adminUser.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const userId = parseObjectId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
+    }
+
+    const existingUser = await db.getUserById(userId)
+    if (!existingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      userId: id,
+      enrolledCourses: (existingUser.enrolledCourses || []).map((courseId: any) => courseId.toString()),
     })
   } catch (error) {
     console.error("Failed to get user courses:", error)
@@ -26,21 +58,35 @@ export async function GET(
 // PUT /api/admin/users/[id]/courses - Update user course access
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify admin authentication
-    const token = request.cookies.get("admin-token")?.value
-    if (!token) {
+    // Check NextAuth admin session first, then fall back to admin-token.
+    const session = await auth()
+    let adminUser: { id: string; role: string } | null = null
+
+    if (session?.user?.email) {
+      const dbUser = await db.getUserByEmail(session.user.email)
+      if (dbUser?._id && dbUser.role === "admin") {
+        adminUser = { id: dbUser._id.toString(), role: dbUser.role }
+      }
+    }
+
+    if (!adminUser) {
+      const token = request.cookies.get("admin-token")?.value
+      if (token) adminUser = verifyToken(token)
+    }
+
+    if (!adminUser || adminUser.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = verifyToken(token)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const { id } = await params
+    const userId = parseObjectId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
     }
 
-    const userId = new ObjectId(params.id)
     const { courseIds } = await request.json()
 
     // Validate input
@@ -49,10 +95,12 @@ export async function PUT(
     }
 
     // Validate that all course IDs are valid ObjectIds
-    const validCourseIds = courseIds.filter(id => ObjectId.isValid(id))
+    const validCourseIds = courseIds.filter((courseId: string) => ObjectId.isValid(courseId))
     if (validCourseIds.length !== courseIds.length) {
       return NextResponse.json({ error: "Invalid course ID format" }, { status: 400 })
     }
+
+    const normalizedCourseIds = validCourseIds.map((courseId: string) => new ObjectId(courseId))
 
     // Check if user exists
     const existingUser = await db.getUserById(userId)
@@ -62,7 +110,7 @@ export async function PUT(
 
     // Update user's enrolled courses
     const success = await db.updateUser(userId, {
-      enrolledCourses: validCourseIds
+      enrolledCourses: normalizedCourseIds as any
     })
     
     if (!success) {
@@ -71,7 +119,7 @@ export async function PUT(
 
     return NextResponse.json({ 
       message: "User course access updated successfully",
-      enrolledCourses: validCourseIds
+      enrolledCourses: normalizedCourseIds.map((courseId) => courseId.toString())
     })
   } catch (error) {
     console.error("Failed to update user course access:", error)
