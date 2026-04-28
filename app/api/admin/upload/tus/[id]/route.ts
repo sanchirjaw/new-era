@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth-server"
 import { bunnyVideoService } from "@/lib/bunny-video"
 
-// Configure for large file uploads
-export const config = {
-  api: {
-    bodyParser: false, // Disable body parser for large files
-    responseLimit: false, // Disable response size limit
-  },
-}
+export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 // GET /api/admin/upload/tus/[id] - Get upload information
 export async function GET(
