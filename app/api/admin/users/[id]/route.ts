@@ -5,13 +5,22 @@ import bcrypt from "bcryptjs"
 import { ObjectId } from "mongodb"
 import { auth } from "@/auth"
 
+function parseUserId(id: string) {
+  if (!ObjectId.isValid(id)) return null
+  return new ObjectId(id)
+}
+
 // GET /api/admin/users/[id] - Get user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = new ObjectId(params.id)
+    const { id } = await params
+    const userId = parseUserId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
+    }
     const user = await db.getUserById(userId)
     
     if (!user) {
@@ -30,7 +39,7 @@ export async function GET(
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check for NextAuth session first, then admin token
@@ -40,7 +49,7 @@ export async function PUT(
     if (session?.user) {
       // NextAuth user - get full user data from database
       const dbUser = await db.getUserByEmail(session.user.email!)
-      if (dbUser && dbUser.role === "admin") {
+      if (dbUser?._id && dbUser.role === "admin") {
         user = { id: dbUser._id.toString(), role: dbUser.role }
       }
     } else {
@@ -55,7 +64,11 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = new ObjectId(params.id)
+    const { id } = await params
+    const userId = parseUserId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
+    }
     const { name, email, password, role } = await request.json()
 
     // Validate input
@@ -76,7 +89,7 @@ export async function PUT(
     // Check if email is already taken by another user
     if (email !== existingUser.email) {
       const userWithEmail = await db.getUserByEmail(email)
-      if (userWithEmail && userWithEmail._id?.toString() !== params.id) {
+      if (userWithEmail && userWithEmail._id?.toString() !== id) {
         return NextResponse.json({ error: "Email already taken" }, { status: 409 })
       }
     }
@@ -110,7 +123,7 @@ export async function PUT(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check for NextAuth session first, then admin token
@@ -120,7 +133,7 @@ export async function DELETE(
     if (session?.user) {
       // NextAuth user - get full user data from database
       const dbUser = await db.getUserByEmail(session.user.email!)
-      if (dbUser && dbUser.role === "admin") {
+      if (dbUser?._id && dbUser.role === "admin") {
         user = { id: dbUser._id.toString(), role: dbUser.role }
       }
     } else {
@@ -135,7 +148,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = new ObjectId(params.id)
+    const { id } = await params
+    const userId = parseUserId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
+    }
 
     // Check if user exists
     const existingUser = await db.getUserById(userId)
@@ -144,7 +161,7 @@ export async function DELETE(
     }
 
     // Prevent admin from deleting themselves
-    if (user.id === params.id) {
+    if (user.id === id) {
       return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 })
     }
 

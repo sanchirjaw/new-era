@@ -5,6 +5,9 @@ import bcrypt from "bcryptjs"
 import { ObjectId } from "mongodb"
 import { auth } from "@/auth"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 // GET /api/admin/users - Get all users
 export async function GET(request: NextRequest) {
   try {
@@ -32,8 +35,17 @@ export async function GET(request: NextRequest) {
 
     // Get all users
     const users = await db.getAllUsers()
-    
-    return NextResponse.json({ users })
+
+    return NextResponse.json(
+      { users },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    )
   } catch (error) {
     
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
