@@ -108,10 +108,10 @@ export default function CoursesPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center space-y-6">
+      <section className="container mx-auto px-4 py-10 md:py-16">
+        <div className="text-center space-y-4">
           <h1
-            className="text-5xl lg:text-6xl font-black tracking-tight bg-clip-text text-transparent"
+            className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-clip-text text-transparent"
             style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
           >
             Бүх хичээлүүд
