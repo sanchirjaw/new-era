@@ -1,0 +1,21 @@
+{
+  "functions": {
+    "app/api/admin/upload/**/*.ts": {
+      "maxDuration": 300
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/admin/upload/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "NEXT_TIMEOUT": "300000"
+  }
+}

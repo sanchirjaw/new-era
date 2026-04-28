@@ -1,0 +1,201 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { X, Loader2, ExternalLink } from "lucide-react"
+import type { Course } from "@/lib/types"
+
+interface PaymentModalProps {
+  course: Course
+  onClose: () => void
+}
+
+interface BylCheckout {
+  id: number
+  url: string
+  status: string
+  amount_total: number
+}
+
+export function PaymentModal({ course, onClose }: PaymentModalProps) {
+  const [loading, setLoading] = useState(false)
+  const [bylCheckout, setBylCheckout] = useState<BylCheckout | null>(null)
+  const [paymentId, setPaymentId] = useState<string | null>(null)
+  const [paymentStatus, setPaymentStatus] = useState<string>("pending")
+  const [hasRedirected, setHasRedirected] = useState(false)
+
+  // Automatically create Byl payment when modal opens
+  useEffect(() => {
+    if (!bylCheckout && !hasRedirected) {
+      createBylPayment()
+    }
+  }, [])
+
+  const createBylPayment = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/payments/byl/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: course._id,
+          paymentMethod: "checkout"
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setBylCheckout(data.bylCheckout)
+        setPaymentId(data.paymentId)
+        setHasRedirected(true)
+        // Automatically redirect to Byl payment page
+        window.open(data.bylCheckout.url, "_blank")
+        startPaymentCheck(data.paymentId)
+      } else {
+        const error = await response.json()
+        alert(error.error || "Төлбөр үүсгэхэд алдаа гарлаа")
+      }
+    } catch (error) {
+      console.error("Payment error:", error)
+      alert("Төлбөр үүсгэхэд алдаа гарлаа")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startPaymentCheck = (paymentId: string) => {
+    const checkInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/payments/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setPaymentStatus(data.status)
+
+          if (data.status === "completed") {
+            clearInterval(checkInterval)
+            alert("Төлбөр амжилттай төлөгдлөө! Хичээлд бүртгэгдлээ.")
+            onClose()
+            window.location.reload() // Refresh to show enrollment
+          }
+        }
+      } catch (error) {
+        console.error("Payment check error:", error)
+      }
+    }, 3000) // Check every 3 seconds
+
+    // Stop checking after 10 minutes
+    setTimeout(() => {
+      clearInterval(checkInterval)
+    }, 600000)
+  }
+
+  const reopenPaymentPage = () => {
+    if (bylCheckout) {
+      window.open(bylCheckout.url, "_blank")
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Төлбөр төлөлт</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {loading ? (
+            <div className="text-center space-y-4">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+              <p>Төлбөр үүсгэж байна...</p>
+            </div>
+          ) : bylCheckout ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="font-semibold text-lg mb-2">{course.title}</h3>
+                <div className="text-2xl font-bold text-primary mt-2">₮{course.price.toLocaleString()}</div>
+              </div>
+
+              <div className="text-center">
+                <h4 className="font-medium text-lg mb-2">Byl төлбөрийн хуудас</h4>
+                <div className="text-sm text-gray-600 mb-4">
+                  {paymentStatus === "completed" 
+                    ? "Төлбөр амжилттай төлөгдлөө!" 
+                    : "Төлбөрийн хуудас нээгдлээ. Хэрэв автоматаар нээгдээгүй бол доорх товчлуурыг дарна уу."}
+                </div>
+              </div>
+
+              <div className="text-center space-y-3">
+                <Button
+                  onClick={reopenPaymentPage}
+                  className="w-full bg-primary hover:bg-primary/90"
+                  size="lg"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Төлбөрийн хуудас нээх
+                </Button>
+                
+                <Button
+                  onClick={createBylPayment}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Шинэ төлбөр үүсгэх
+                </Button>
+              </div>
+
+              {paymentStatus === "pending" && (
+                <div className="text-center">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Төлбөр хүлээж байна...</p>
+                </div>
+              )}
+
+              <div className="text-center text-sm text-gray-600">
+                <p>Төлбөр төлөгдсөний дараа автоматаар хичээлд бүртгэгдэх болно.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <div className="text-center">
+                <h3 className="font-semibold text-lg">{course.title}</h3>
+                <div className="text-2xl font-bold text-primary mt-2">₮{course.price.toLocaleString()}</div>
+              </div>
+              
+              <Button 
+                onClick={createBylPayment} 
+                disabled={loading} 
+                className="w-full bg-primary hover:bg-primary/90"
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Төлбөр үүсгэж байна...
+                  </>
+                ) : (
+                  "Төлбөр төлөх"
+                )}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
