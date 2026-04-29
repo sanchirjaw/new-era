@@ -311,35 +311,103 @@ export default async function Home() {
       )}
 
       {/* ════════════════════════════════════════════════════
-          FEATURES
+          FEATURES  —  split layout
       ════════════════════════════════════════════════════ */}
-      <section className="py-14 md:py-20" style={{ background: "var(--ne-hero-bg)" }}>
+      <section className="py-14 md:py-24 bg-background">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#7B61FF" }}>Онцлог</p>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground">
-              Яагаад{" "}
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>New Era?</span>
-            </h2>
-          </div>
+            {/* ── Left: sticky headline block ── */}
+            <div className="space-y-6">
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#7B61FF" }}>
+                Яагаад бид?
+              </p>
+              <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-foreground leading-[1.1]">
+                Таны суралцахуйн<br />
+                <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                  итгэлтэй түнш
+                </span>
+              </h2>
+              <p className="text-muted-foreground text-base leading-relaxed max-w-md">
+                Зөвхөн видео биш — мэргэжлийн дэмжлэг, хувийн хөгжлийн зам,
+                дэлхийн чанартай агуулгыг Монгол хэлээр.
+              </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-8 max-w-4xl mx-auto">
-            {[
-              { icon: features.feature1?.icon || "🌍", title: features.feature1?.title || "Хэзээ ч, хаанаас ч", desc: features.feature1?.description || "", accent: "#00E5A0" },
-              { icon: features.feature2?.icon || "🎯", title: features.feature2?.title || "Чанартай агуулга", desc: features.feature2?.description || "", accent: "#7B61FF" },
-              { icon: features.feature3?.icon || "📈", title: features.feature3?.title || "Хувийн хөгжил", desc: features.feature3?.description || "", accent: "#00c87a" },
-            ].map((f, i) => (
-              <div key={i} className="ne-card p-6 md:p-8 flex flex-col items-center text-center group">
-                {/* icon ring */}
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-5 transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: GRAD }}>
-                  {f.icon}
-                </div>
-                <h3 className="font-bold text-base sm:text-lg text-card-foreground mb-2">{f.title}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              {/* decorative gradient bar */}
+              <div className="flex gap-2 pt-2">
+                <div className="h-1 w-12 rounded-full" style={{ background: GRAD }} />
+                <div className="h-1 w-6 rounded-full bg-border" />
+                <div className="h-1 w-3 rounded-full bg-border" />
               </div>
-            ))}
+
+              {/* mini trust stat */}
+              <div className="inline-flex items-center gap-3 rounded-2xl px-5 py-3 border border-border bg-card">
+                <span className="text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                  {stats.totalStudents || "100+"}
+                </span>
+                <span className="text-sm text-muted-foreground">сурагч аль хэдийн<br />суралцаж байна</span>
+              </div>
+            </div>
+
+            {/* ── Right: numbered feature list ── */}
+            <div className="space-y-4">
+              {[
+                {
+                  num: "01",
+                  icon: features.feature1?.icon || "🌍",
+                  title: features.feature1?.title || "Хэзээ ч, хаанаас ч",
+                  desc: features.feature1?.description || "Таны хүссэн цагт, хүссэн газартаас суралцах боломжтой.",
+                },
+                {
+                  num: "02",
+                  icon: features.feature2?.icon || "🎯",
+                  title: features.feature2?.title || "Чанартай агуулга",
+                  desc: features.feature2?.description || "Мэргэжлийн багш нартай HD чанартай видео хичээллүүд.",
+                },
+                {
+                  num: "03",
+                  icon: features.feature3?.icon || "📈",
+                  title: features.feature3?.title || "Хувийн хөгжил",
+                  desc: features.feature3?.description || "Таны хурдад тохируулсан сургалт, прогресс хяналт.",
+                },
+              ].map((f) => (
+                <div key={f.num}
+                  className="group flex gap-5 p-5 rounded-2xl border border-border bg-card
+                             hover:border-transparent transition-all duration-300 cursor-default"
+                  style={{
+                    /* hover: gradient border via box-shadow trick */
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 2px #00E5A0, 0 8px 32px rgba(0,229,160,0.12)"
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = ""
+                  }}
+                >
+                  {/* number */}
+                  <div className="flex-shrink-0 w-10 text-right">
+                    <span className="text-2xl font-black bg-clip-text text-transparent leading-none"
+                      style={{ backgroundImage: GRAD }}>
+                      {f.num}
+                    </span>
+                  </div>
+
+                  {/* icon */}
+                  <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl
+                                  transition-transform duration-300 group-hover:scale-110"
+                    style={{ background: "var(--ne-hero-bg)", border: "1px solid var(--border)" }}>
+                    {f.icon}
+                  </div>
+
+                  {/* text */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-base text-card-foreground mb-1">{f.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
       </section>
