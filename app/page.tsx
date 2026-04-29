@@ -76,16 +76,16 @@ export default async function Home() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
           style={{ backgroundImage: "repeating-linear-gradient(0deg,#000 0,#000 1px,transparent 0,transparent 50%),repeating-linear-gradient(90deg,#000 0,#000 1px,transparent 0,transparent 50%)", backgroundSize: "40px 40px" }} />
 
-        <div className="relative container mx-auto px-4 sm:px-6 pt-14 pb-16 md:pt-24 md:pb-28">
+        <div className="relative container mx-auto px-4 sm:px-6 pt-8 pb-12 md:pt-24 md:pb-28">
 
           {/* ── Mobile: centered ── Desktop: 2-col ── */}
           <div className="flex flex-col md:flex-row md:items-center md:gap-12 lg:gap-20">
 
             {/* LEFT — text block */}
-            <div className="flex-1 text-center md:text-left space-y-6 max-w-xl mx-auto md:max-w-none md:mx-0">
+            <div className="flex-1 text-center md:text-left space-y-5 max-w-xl mx-auto md:max-w-none md:mx-0">
 
-              {/* pill badge */}
-              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border shadow-sm"
+              {/* pill badge — desktop only */}
+              <div className="hidden md:inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border shadow-sm"
                 style={{ borderColor: "rgba(0,229,160,0.5)", background: "rgba(0,229,160,0.1)", color: "#00c87a" }}>
                 <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
                 {featuredCourse?.category || "Монголын онлайн сургалт"}
@@ -115,20 +115,21 @@ export default async function Home() {
                 </a>
               </div>
 
-              {/* stats row */}
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-1">
+              {/* stats row — 1 row on mobile (compact), wrap on desktop */}
+              <div className="flex flex-nowrap gap-2 justify-center md:justify-start md:flex-wrap md:gap-3 pt-1 overflow-x-auto"
+                style={{ scrollbarWidth: "none" }}>
                 {[
-                  { icon: <Users className="w-4 h-4" />, val: stats.totalStudents || "100+", label: "Сурагч" },
-                  { icon: <Star className="w-4 h-4" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
-                  { icon: <Trophy className="w-4 h-4" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан" },
+                  { icon: <Users className="w-3 h-3 md:w-4 md:h-4" />, val: stats.totalStudents || "100+", label: "Сурагч" },
+                  { icon: <Star className="w-3 h-3 md:w-4 md:h-4" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
+                  { icon: <Trophy className="w-3 h-3 md:w-4 md:h-4" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан" },
                 ].map(s => (
                   <div key={s.label}
-                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border backdrop-blur-sm"
+                    className="flex-shrink-0 flex items-center gap-1.5 md:gap-2.5 px-2.5 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl border backdrop-blur-sm"
                     style={{ borderColor: "rgba(0,229,160,0.3)", background: "rgba(255,255,255,0.6)" }}>
                     <span style={{ color: "#00E5A0" }}>{s.icon}</span>
                     <div>
-                      <p className="text-sm font-black leading-none bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">{s.label}</p>
+                      <p className="text-xs md:text-sm font-black leading-none bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                      <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 leading-none">{s.label}</p>
                     </div>
                   </div>
                 ))}
