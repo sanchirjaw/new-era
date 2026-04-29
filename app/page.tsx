@@ -267,12 +267,53 @@ export default async function Home() {
               </a>
             </div>
 
-            {/* grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {/* ── mobile: horizontal scroll carousel / desktop: grid ── */}
+            {/* mobile scroll wrapper */}
+            <div className="sm:hidden -mx-4 px-4">
+              <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scroll-smooth"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                {moreCourses.map(course => (
+                  <Link key={course._id} href={`/courses/${course._id}`}
+                    className="ne-card flex-none w-[78vw] max-w-[300px] overflow-hidden group flex flex-col snap-start">
+                    <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+                      {course.thumbnailUrl ? (
+                        <img src={course.thumbnailUrl} alt={course.title}
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      {course.category && (
+                        <span className="absolute top-2 left-2 ne-label text-xs">{course.category}</span>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-1">
+                      <h3 className="font-bold text-sm text-card-foreground line-clamp-2 mb-1 flex-1">
+                        {getDisplayTitle(course.title)}
+                      </h3>
+                      <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
+                        <span className="font-black text-orange-500 text-sm">₮{course.price?.toLocaleString()}</span>
+                        <span className="text-xs font-semibold bg-clip-text text-transparent flex items-center gap-1"
+                          style={{ backgroundImage: GRAD }}>
+                          Үзэх <ArrowRight className="w-3 h-3" style={{ color: "#7B61FF" }} />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                {/* end padding card */}
+                <div className="flex-none w-4" />
+              </div>
+              {/* swipe hint */}
+              <p className="text-center text-xs text-muted-foreground mt-1 opacity-60">← зүүн тийш гүйлгэнэ →</p>
+            </div>
+
+            {/* desktop grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
               {moreCourses.map(course => (
                 <Link key={course._id} href={`/courses/${course._id}`}
                   className="ne-card block overflow-hidden group flex flex-col">
-                  {/* thumbnail */}
                   <div className="relative aspect-[16/9] overflow-hidden bg-muted">
                     {course.thumbnailUrl ? (
                       <img src={course.thumbnailUrl} alt={course.title}
@@ -286,7 +327,6 @@ export default async function Home() {
                       <span className="absolute top-2.5 left-2.5 ne-label text-xs">{course.category}</span>
                     )}
                   </div>
-                  {/* body */}
                   <div className="p-4 sm:p-5 flex flex-col flex-1">
                     <h3 className="font-bold text-sm sm:text-base text-card-foreground line-clamp-2 mb-1 flex-1">
                       {getDisplayTitle(course.title)}
@@ -311,104 +351,60 @@ export default async function Home() {
       )}
 
       {/* ════════════════════════════════════════════════════
-          FEATURES  —  split layout
+          FEATURES  —  3 columns (all screen sizes)
       ════════════════════════════════════════════════════ */}
-      <section className="py-14 md:py-24 bg-background">
-        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
 
-            {/* ── Left: sticky headline block ── */}
-            <div className="space-y-6">
-              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#7B61FF" }}>
-                Яагаад бид?
-              </p>
-              <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-foreground leading-[1.1]">
-                Таны суралцахуйн<br />
-                <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                  итгэлтэй түнш
-                </span>
-              </h2>
-              <p className="text-muted-foreground text-base leading-relaxed max-w-md">
-                Зөвхөн видео биш — мэргэжлийн дэмжлэг, хувийн хөгжлийн зам,
-                дэлхийн чанартай агуулгыг Монгол хэлээр.
-              </p>
-
-              {/* decorative gradient bar */}
-              <div className="flex gap-2 pt-2">
-                <div className="h-1 w-12 rounded-full" style={{ background: GRAD }} />
-                <div className="h-1 w-6 rounded-full bg-border" />
-                <div className="h-1 w-3 rounded-full bg-border" />
-              </div>
-
-              {/* mini trust stat */}
-              <div className="inline-flex items-center gap-3 rounded-2xl px-5 py-3 border border-border bg-card">
-                <span className="text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                  {stats.totalStudents || "100+"}
-                </span>
-                <span className="text-sm text-muted-foreground">сурагч аль хэдийн<br />суралцаж байна</span>
-              </div>
-            </div>
-
-            {/* ── Right: numbered feature list ── */}
-            <div className="space-y-4">
-              {[
-                {
-                  num: "01",
-                  icon: features.feature1?.icon || "🌍",
-                  title: features.feature1?.title || "Хэзээ ч, хаанаас ч",
-                  desc: features.feature1?.description || "Таны хүссэн цагт, хүссэн газартаас суралцах боломжтой.",
-                },
-                {
-                  num: "02",
-                  icon: features.feature2?.icon || "🎯",
-                  title: features.feature2?.title || "Чанартай агуулга",
-                  desc: features.feature2?.description || "Мэргэжлийн багш нартай HD чанартай видео хичээллүүд.",
-                },
-                {
-                  num: "03",
-                  icon: features.feature3?.icon || "📈",
-                  title: features.feature3?.title || "Хувийн хөгжил",
-                  desc: features.feature3?.description || "Таны хурдад тохируулсан сургалт, прогресс хяналт.",
-                },
-              ].map((f) => (
-                <div key={f.num}
-                  className="group flex gap-5 p-5 rounded-2xl border border-border bg-card
-                             hover:border-transparent transition-all duration-300 cursor-default"
-                  style={{
-                    /* hover: gradient border via box-shadow trick */
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 2px #00E5A0, 0 8px 32px rgba(0,229,160,0.12)"
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = ""
-                  }}
-                >
-                  {/* number */}
-                  <div className="flex-shrink-0 w-10 text-right">
-                    <span className="text-2xl font-black bg-clip-text text-transparent leading-none"
-                      style={{ backgroundImage: GRAD }}>
-                      {f.num}
-                    </span>
-                  </div>
-
-                  {/* icon */}
-                  <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl
-                                  transition-transform duration-300 group-hover:scale-110"
-                    style={{ background: "var(--ne-hero-bg)", border: "1px solid var(--border)" }}>
-                    {f.icon}
-                  </div>
-
-                  {/* text */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base text-card-foreground mb-1">{f.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
+          <div className="text-center mb-8 md:mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#7B61FF" }}>Яагаад бид?</p>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground">
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>New Era</span>
+              {" "}сонгох шалтгаан
+            </h2>
           </div>
+
+          {/* always 3 columns */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 md:gap-8">
+            {[
+              {
+                icon: features.feature1?.icon || "🌍",
+                title: features.feature1?.title || "Хэзээ ч, хаанаас ч",
+                desc: features.feature1?.description || "Хүссэн цагтаа, хүссэн газраасаа суралц.",
+              },
+              {
+                icon: features.feature2?.icon || "🎯",
+                title: features.feature2?.title || "Чанартай агуулга",
+                desc: features.feature2?.description || "Мэргэжлийн багш нартай HD видео хичээл.",
+              },
+              {
+                icon: features.feature3?.icon || "📈",
+                title: features.feature3?.title || "Хувийн хөгжил",
+                desc: features.feature3?.description || "Прогресс хяналт, багшийн дэмжлэг.",
+              },
+            ].map((f, i) => (
+              <div key={i}
+                className="ne-card flex flex-col items-center text-center p-3 sm:p-6 md:p-8 group">
+                {/* icon */}
+                <div
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center
+                             text-xl sm:text-2xl mb-3 sm:mb-4 flex-shrink-0
+                             transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: GRAD }}>
+                  {f.icon}
+                </div>
+                {/* title */}
+                <h3 className="font-bold text-xs sm:text-base text-card-foreground mb-1 leading-tight">
+                  {f.title}
+                </h3>
+                {/* desc — hidden on very small, visible sm+ */}
+                <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
