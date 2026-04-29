@@ -1,20 +1,19 @@
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import PublicMediaGrid from "@/components/public-media-grid"
-import { Play, Star, Users, Trophy } from "lucide-react"
+import { Play, Star, Users, Trophy, CheckCircle, ArrowRight } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { getDisplayTitle, getDisplayDescription } from "@/lib/course-utils"
 
 const GRAD = "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)"
+const GRAD_R = "linear-gradient(135deg, #7B61FF 0%, #00E5A0 100%)"
 
 interface Stats {
   totalStudents: string
   averageRating: string
   completedLessons: string
 }
-
 interface PlatformFeatures {
   feature1: { title: string; description: string; icon: string }
   feature2: { title: string; description: string; icon: string }
@@ -26,8 +25,8 @@ export default async function Home() {
   let stats: Stats = { totalStudents: "0", averageRating: "4.8", completedLessons: "0" }
   let features: PlatformFeatures = {
     feature1: { title: "Хэзээ ч, хаанаас ч", description: "Таны хүссэн цагт, хүссэн газартаас суралцах боломжтой.", icon: "🌍" },
-    feature2: { title: "Чанартай агуулга", description: "Мэргэжлийн багш нартай, чанартай видео хичээллүүд.", icon: "🎯" },
-    feature3: { title: "Хувийн хөгжил", description: "Таны хурдад тохируулсан сургалт. Прогресс хяналт болон багшийн дэмжлэг.", icon: "📈" },
+    feature2: { title: "Чанартай агуулга", description: "Мэргэжлийн багш нартай HD чанартай видео хичээллүүд.", icon: "🎯" },
+    feature3: { title: "Хувийн хөгжил", description: "Таны хурдад тохируулсан сургалт, прогресс хяналт.", icon: "📈" },
   }
   let gridLayout: any = null
 
@@ -43,7 +42,6 @@ export default async function Home() {
       fetch(`${baseUrl}/api/features`, { next: { revalidate: 3600 } }),
       fetch(`${baseUrl}/api/media-grid`, { next: { revalidate: 300 } }),
     ])
-
     if (coursesRes.status === "fulfilled" && coursesRes.value.ok) {
       const d = await coursesRes.value.json(); courses = d.courses || []
     }
@@ -56,124 +54,158 @@ export default async function Home() {
     if (gridRes.status === "fulfilled" && gridRes.value.ok) {
       const d = await gridRes.value.json(); if (d.layout?.isPublished) gridLayout = d.layout
     }
-  } catch (e) {
-    console.error("Error fetching data:", e)
-  }
+  } catch (e) { console.error(e) }
 
-  const featuredCourse = courses.length > 0 ? courses[0] : null
-  const moreCourses = courses.slice(1, 6)
+  const featuredCourse = courses[0] ?? null
+  const moreCourses = courses.slice(1, 7)
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* ─── Hero ─────────────────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════
+          HERO
+      ════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden" style={{ background: "var(--ne-hero-bg)" }}>
-        <div className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] opacity-60" style={{ background: "var(--ne-orb-1)" }} />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 w-[400px] h-[400px] opacity-50" style={{ background: "var(--ne-orb-2)" }} />
+        {/* decorative orbs */}
+        <div className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-40"
+          style={{ background: "radial-gradient(circle, rgba(0,229,160,0.25) 0%, transparent 70%)" }} />
+        <div className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-30"
+          style={{ background: "radial-gradient(circle, rgba(123,97,255,0.3) 0%, transparent 70%)" }} />
 
-        <div className="container mx-auto px-4 pt-10 pb-14 md:py-20 relative">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-16 items-center max-w-6xl mx-auto gap-10">
+        <div className="relative container mx-auto px-4 sm:px-6 pt-12 pb-16 md:pt-20 md:pb-24">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-20 items-center gap-12 max-w-6xl mx-auto">
 
-            {/* Text block */}
-            <div className="space-y-6 w-full text-center lg:text-left order-1">
-              <span className="ne-label inline-flex">
-                🚀 {featuredCourse ? featuredCourse.category || "Монголын онлайн сургалт" : "Монголын онлайн сургалт"}
-              </span>
+            {/* ── Left: copy ── */}
+            <div className="w-full space-y-7 text-center lg:text-left">
 
-              <div className="space-y-1">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-tight">
-                  Чанартай{" "}
-                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                    хичээлүүд.
+              {/* pill badge */}
+              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
+                style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
+                <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
+                {featuredCourse?.category || "Монголын онлайн сургалт"}
+              </div>
+
+              {/* headline */}
+              <div>
+                <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
+                  Ур чадвараа{" "}
+                  <span className="relative inline-block">
+                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
+                      хөгжүүл.
+                    </span>
                   </span>
                 </h1>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground/70 leading-tight">
+                <h2 className="mt-3 text-2xl sm:text-3xl xl:text-4xl font-bold text-foreground/60 leading-snug">
                   Хэзээ ч, хаанаас ч.
                 </h2>
               </div>
 
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0">
-                Мэргэжлийн багш нартай, чанартай видео хичээлээр ур чадвараа хөгжүүл.
-                Интернэт холболттой хаанаас ч суралцаарай.
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-md mx-auto lg:mx-0">
+                Мэргэжлийн багш нартай, чанартай видео хичээлүүдээр таны карьерыг шинэ шатанд гаргана.
               </p>
 
+              {/* trust checklist */}
+              <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm text-muted-foreground justify-center lg:justify-start">
+                {["HD чанартай видео", "Гэрчилгээ олгоно", "24/7 дэмжлэг"].map(t => (
+                  <li key={t} className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#00E5A0" }} />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <a href="/courses" className="ne-btn-primary text-base px-8 py-3 w-full sm:w-auto text-center">
+                <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-7 py-3 w-full sm:w-auto text-center">
                   Хичээлүүд үзэх
                 </a>
-                <a href="/register" className="ne-btn-ghost text-base px-8 py-3 w-full sm:w-auto text-center">
-                  Бүртгүүлэх
+                <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-7 py-3 w-full sm:w-auto text-center">
+                  Үнэгүй бүртгүүлэх
                 </a>
               </div>
 
-              {/* Mini stats */}
-              <div className="flex gap-6 pt-1 justify-center lg:justify-start">
+              {/* mini stats */}
+              <div className="flex gap-8 justify-center lg:justify-start pt-1">
                 {[
                   { val: stats.totalStudents || "100+", label: "Сурагч" },
-                  { val: stats.averageRating || "4.8", label: "Үнэлгээ" },
+                  { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
                   { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
-                ].map((s) => (
-                  <div key={s.label} className="text-center lg:text-left">
-                    <div className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                      {s.val}
-                    </div>
-                    <div className="text-xs text-muted-foreground font-medium">{s.label}</div>
+                ].map(s => (
+                  <div key={s.label}>
+                    <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Featured Course Card */}
-            <div className="w-full max-w-sm sm:max-w-md mx-auto lg:mx-0 order-2">
+            {/* ── Right: featured card ── */}
+            <div className="w-full max-w-[400px] mx-auto lg:mx-0">
               {featuredCourse ? (
-                <div className="ne-card overflow-hidden w-full">
-                  <div className="p-5 sm:p-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-card-foreground mb-1">
+                <div className="ne-card overflow-hidden">
+                  {/* thumbnail */}
+                  <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                    {featuredCourse.thumbnailUrl ? (
+                      <img src={featuredCourse.thumbnailUrl} alt={featuredCourse.title}
+                        className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
+                        <Play className="w-12 h-12 text-white" />
+                      </div>
+                    )}
+                    {/* play overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
+                      <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                        <Play className="w-6 h-6 text-gray-900 ml-1" />
+                      </div>
+                    </div>
+                    {/* category badge */}
+                    {featuredCourse.category && (
+                      <span className="absolute top-3 left-3 ne-label text-xs">{featuredCourse.category}</span>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="text-base sm:text-lg font-bold text-card-foreground mb-1 line-clamp-1">
                       {getDisplayTitle(featuredCourse.title)}
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {getDisplayDescription(featuredCourse.title, featuredCourse.description || "Хичээлийн тайлбар")}
+                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">
+                      {getDisplayDescription(featuredCourse.title, featuredCourse.description || "")}
                     </p>
 
-                    <div className="relative bg-muted rounded-xl aspect-video mb-4 flex items-center justify-center border border-border overflow-hidden">
-                      {featuredCourse.thumbnailUrl ? (
-                        <img src={featuredCourse.thumbnailUrl} alt={featuredCourse.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: GRAD }}>
-                          <Play className="w-6 h-6 text-white ml-1" />
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-black text-orange-500">
+                          ₮{featuredCourse.price?.toLocaleString() || "0"}
+                        </span>
+                        {featuredCourse.originalPrice && featuredCourse.originalPrice > featuredCourse.price && (
+                          <>
+                            <span className="text-sm text-muted-foreground line-through">
+                              ₮{featuredCourse.originalPrice.toLocaleString()}
+                            </span>
+                            <span className="ne-label text-xs">
+                              -{Math.round((1 - featuredCourse.price / featuredCourse.originalPrice) * 100)}%
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-baseline gap-2 mb-4">
-                      <span className="text-2xl font-black text-orange-500">
-                        ₮{featuredCourse.price?.toLocaleString() || "0"}
-                      </span>
-                      {featuredCourse.originalPrice && featuredCourse.originalPrice > featuredCourse.price && (
-                        <>
-                          <span className="text-sm text-muted-foreground line-through">
-                            ₮{featuredCourse.originalPrice.toLocaleString()}
-                          </span>
-                          <span className="ne-label text-xs">
-                            -{Math.round((1 - featuredCourse.price / featuredCourse.originalPrice) * 100)}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    <a href={`/courses/${featuredCourse._id}`} className="ne-btn-primary w-full text-sm py-3 block text-center">
-                      Хичээлд бүртгүүлэх
+                    <a href={`/courses/${featuredCourse._id}`}
+                      className="ne-btn-primary w-full text-sm py-2.5 block text-center">
+                      Хичээлд элсэх
                     </a>
                   </div>
                 </div>
               ) : (
-                <div className="ne-card overflow-hidden w-full">
-                  <div className="p-5 animate-pulse">
-                    <div className="h-5 bg-muted rounded mb-2" />
-                    <div className="h-4 bg-muted rounded mb-4 w-3/4" />
-                    <div className="bg-muted rounded-xl aspect-video mb-4" />
-                    <div className="h-7 bg-muted rounded mb-4 w-1/2" />
+                <div className="ne-card overflow-hidden animate-pulse">
+                  <div className="aspect-[16/9] bg-muted" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-full" />
+                    <div className="h-4 bg-muted rounded w-2/3" />
+                    <div className="h-8 bg-muted rounded w-1/3" />
                     <div className="h-10 bg-muted rounded" />
                   </div>
                 </div>
@@ -184,47 +216,89 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ─── Media Grid (desktop only) ────────────────────── */}
+      {/* ════════════════════════════════════════════════════
+          STATS BAND
+      ════════════════════════════════════════════════════ */}
+      <div style={{ background: GRAD }}>
+        <div className="container mx-auto px-4 py-5">
+          <div className="flex flex-wrap items-center justify-center sm:justify-around gap-6 max-w-3xl mx-auto">
+            {[
+              { icon: <Users className="w-5 h-5" />, val: stats.totalStudents || "100+", label: "Сурагч" },
+              { icon: <Star className="w-5 h-5" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
+              { icon: <Trophy className="w-5 h-5" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан хичээл" },
+            ].map(s => (
+              <div key={s.label} className="flex items-center gap-3 text-white">
+                <div className="opacity-80">{s.icon}</div>
+                <div>
+                  <p className="text-xl font-black leading-none">{s.val}</p>
+                  <p className="text-xs opacity-80 mt-0.5">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════
+          MEDIA GRID (desktop)
+      ════════════════════════════════════════════════════ */}
       <div className="hidden md:block">
         <PublicMediaGrid gridLayout={gridLayout} />
       </div>
 
-      {/* ─── More Courses Grid ────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════
+          COURSES GRID
+      ════════════════════════════════════════════════════ */}
       {moreCourses.length > 0 && (
-        <section className="py-12 md:py-20 bg-background">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-8 md:mb-12">
-              <div className="ne-divider" />
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-2">
-                Бусад{" "}
-                <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                  хичээлүүд
-                </span>
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">Таны сонирхлыг татах хичээлүүдийг олж нээ</p>
+        <section className="py-14 md:py-20 bg-background">
+          <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+
+            {/* section header */}
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#00E5A0" }}>Хичээлүүд</p>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground leading-tight">
+                  Шилдэг{" "}
+                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд</span>
+                </h2>
+              </div>
+              <a href="/courses" className="ne-btn-ghost text-sm px-5 py-2 self-start sm:self-auto whitespace-nowrap flex items-center gap-1.5">
+                Бүгдийг харах <ArrowRight className="w-4 h-4" />
+              </a>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {moreCourses.map((course) => (
-                <Link key={course._id} href={`/courses/${course._id}`} className="ne-card block overflow-hidden group">
-                  <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
+            {/* grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+              {moreCourses.map(course => (
+                <Link key={course._id} href={`/courses/${course._id}`}
+                  className="ne-card block overflow-hidden group flex flex-col">
+                  {/* thumbnail */}
+                  <div className="relative aspect-[16/9] overflow-hidden bg-muted">
                     {course.thumbnailUrl ? (
-                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={course.thumbnailUrl} alt={course.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
-                        <Play className="w-8 h-8 text-white" />
+                        <Play className="w-10 h-10 text-white" />
                       </div>
                     )}
+                    {course.category && (
+                      <span className="absolute top-2.5 left-2.5 ne-label text-xs">{course.category}</span>
+                    )}
                   </div>
-                  <div className="p-4 sm:p-5">
-                    <h3 className="font-bold text-sm sm:text-base text-card-foreground mb-1 line-clamp-2">{getDisplayTitle(course.title)}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {/* body */}
+                  <div className="p-4 sm:p-5 flex flex-col flex-1">
+                    <h3 className="font-bold text-sm sm:text-base text-card-foreground line-clamp-2 mb-1 flex-1">
+                      {getDisplayTitle(course.title)}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                       {getDisplayDescription(course.title, course.description || "")}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-orange-500 text-sm sm:text-base">₮{course.price?.toLocaleString()}</span>
-                      <span className="text-xs font-bold bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                        Үзэх →
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <span className="font-black text-orange-500">₮{course.price?.toLocaleString()}</span>
+                      <span className="text-xs font-semibold flex items-center gap-1 bg-clip-text text-transparent"
+                        style={{ backgroundImage: GRAD }}>
+                        Үзэх <ArrowRight className="w-3 h-3" style={{ color: "#7B61FF" }} />
                       </span>
                     </div>
                   </div>
@@ -232,86 +306,73 @@ export default async function Home() {
               ))}
             </div>
 
-            <div className="text-center mt-8 md:mt-10">
-              <a href="/courses" className="ne-btn-ghost text-sm sm:text-base px-8 py-3">
-                Бүх хичээлүүд харах
-              </a>
-            </div>
           </div>
         </section>
       )}
 
-      {/* ─── Why Us ───────────────────────────────────────── */}
-      <section className="py-12 md:py-20" style={{ background: "var(--ne-hero-bg)" }}>
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-8 md:mb-12">
-            <div className="ne-divider" />
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-2">
+      {/* ════════════════════════════════════════════════════
+          FEATURES
+      ════════════════════════════════════════════════════ */}
+      <section className="py-14 md:py-20" style={{ background: "var(--ne-hero-bg)" }}>
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#7B61FF" }}>Онцлог</p>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground">
               Яагаад{" "}
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                Бид?
-              </span>
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>New Era?</span>
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Манай платформын онцлог шинж чанарууд</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-8 max-w-4xl mx-auto">
             {[
-              { icon: features.feature1?.icon || "🌍", title: features.feature1?.title || "Хэзээ ч, хаанаас ч", desc: features.feature1?.description || "" },
-              { icon: features.feature2?.icon || "🎯", title: features.feature2?.title || "Чанартай агуулга", desc: features.feature2?.description || "" },
-              { icon: features.feature3?.icon || "📈", title: features.feature3?.title || "Хувийн хөгжил", desc: features.feature3?.description || "" },
+              { icon: features.feature1?.icon || "🌍", title: features.feature1?.title || "Хэзээ ч, хаанаас ч", desc: features.feature1?.description || "", accent: "#00E5A0" },
+              { icon: features.feature2?.icon || "🎯", title: features.feature2?.title || "Чанартай агуулга", desc: features.feature2?.description || "", accent: "#7B61FF" },
+              { icon: features.feature3?.icon || "📈", title: features.feature3?.title || "Хувийн хөгжил", desc: features.feature3?.description || "", accent: "#00c87a" },
             ].map((f, i) => (
-              <Card key={i} className="ne-card text-center p-6 md:p-8 border-0 shadow-none">
-                <CardContent className="space-y-3 p-0">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto text-2xl" style={{ background: GRAD }}>
-                    {f.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-card-foreground mb-1">{f.title}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={i} className="ne-card p-6 md:p-8 flex flex-col items-center text-center group">
+                {/* icon ring */}
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-5 transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: GRAD }}>
+                  {f.icon}
+                </div>
+                <h3 className="font-bold text-base sm:text-lg text-card-foreground mb-2">{f.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── Stats ────────────────────────────────────────── */}
-      <section className="py-12 md:py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-8 md:mb-12">
-            <div className="ne-divider" />
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-2">
-              New Era{" "}
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                статистик
-              </span>
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Суралцагчдын амжилт тоо баримтаар</p>
-          </div>
+      {/* ════════════════════════════════════════════════════
+          CTA BANNER
+      ════════════════════════════════════════════════════ */}
+      <section className="py-14 md:py-20 bg-background">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+          <div className="relative overflow-hidden rounded-3xl p-8 sm:p-12 text-center"
+            style={{ background: GRAD }}>
+            {/* decorative circles */}
+            <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
-            {[
-              { icon: <Users className="w-6 h-6 text-white" />, val: stats.totalStudents || "100+", label: "Нийт сурагч", sub: "Идэвхтэй суралцаж буй" },
-              { icon: <Star className="w-6 h-6 text-white" />, val: stats.averageRating || "4.8/5", label: "Дундаж үнэлгээ", sub: "Суралцагчдын сэтгэгдэл" },
-              { icon: <Trophy className="w-6 h-6 text-white" />, val: stats.completedLessons || "15,000+", label: "Хичээл дуусгасан", sub: "Амжилттай төгссөн" },
-            ].map((s, i) => (
-              <Card key={i} className="ne-card text-center p-6 md:p-8 border-0 shadow-none">
-                <CardContent className="space-y-3 p-0">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto" style={{ background: GRAD }}>
-                    {s.icon}
-                  </div>
-                  <div>
-                    <div className="text-3xl font-black bg-clip-text text-transparent mb-1" style={{ backgroundImage: GRAD }}>
-                      {s.val}
-                    </div>
-                    <div className="text-card-foreground font-bold text-sm mb-1">{s.label}</div>
-                    <div className="text-xs text-muted-foreground">{s.sub}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <p className="text-white/80 text-sm font-semibold uppercase tracking-widest mb-3">Өнөөдрөөс эхлэ</p>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-4 leading-tight">
+              Ирээдүйгээ өөрчлөх цаг<br className="hidden sm:block" /> болсон
+            </h2>
+            <p className="text-white/80 text-sm sm:text-base mb-8 max-w-md mx-auto">
+              Мэргэжлийн багш нартай, чанартай хичээлүүд таныг хүлээж байна.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="/courses"
+                className="inline-flex items-center justify-center gap-2 bg-white font-bold px-8 py-3 rounded-xl text-sm transition-all hover:scale-105 hover:shadow-lg"
+                style={{ color: "#7B61FF" }}>
+                Хичээл харах <ArrowRight className="w-4 h-4" />
+              </a>
+              <a href="/register"
+                className="inline-flex items-center justify-center gap-2 border-2 border-white/60 text-white font-bold px-8 py-3 rounded-xl text-sm transition-all hover:bg-white/10">
+                Үнэгүй бүртгүүлэх
+              </a>
+            </div>
           </div>
         </div>
       </section>

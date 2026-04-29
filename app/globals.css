@@ -185,6 +185,11 @@
   }
 }
 
+/* ─── Smooth scrolling ────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
 /* ─── New Era Utility Classes ─────────────────────────── */
 
 /* Primary gradient button */
