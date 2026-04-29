@@ -67,81 +67,56 @@ export default async function Home() {
           HERO
       ════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden" style={{ background: "var(--ne-hero-bg)" }}>
-        {/* decorative orbs */}
         <div className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-40"
           style={{ background: "radial-gradient(circle, rgba(0,229,160,0.25) 0%, transparent 70%)" }} />
         <div className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-30"
           style={{ background: "radial-gradient(circle, rgba(123,97,255,0.3) 0%, transparent 70%)" }} />
 
-        <div className="relative container mx-auto px-4 sm:px-6 pt-12 pb-16 md:pt-20 md:pb-24">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-20 items-center gap-12 max-w-6xl mx-auto">
+        <div className="relative container mx-auto px-4 sm:px-6 pt-10 pb-14 md:pt-16 md:pb-20">
+          <div className="max-w-2xl mx-auto text-center space-y-5">
 
-            {/* ── Left: copy ── */}
-            <div className="w-full space-y-7 text-center lg:text-left">
-
-              {/* pill badge */}
-              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
-                style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
-                <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
-                {featuredCourse?.category || "Монголын онлайн сургалт"}
-              </div>
-
-              {/* headline */}
-              <div>
-                <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
-                  Ур чадвараа{" "}
-                  <span className="relative inline-block">
-                    <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>
-                      хөгжүүл.
-                    </span>
-                  </span>
-                </h1>
-                <h2 className="mt-3 text-2xl sm:text-3xl xl:text-4xl font-bold text-foreground/60 leading-snug">
-                  Хэзээ ч, хаанаас ч.
-                </h2>
-              </div>
-
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-md mx-auto lg:mx-0">
-                Мэргэжлийн багш нартай, чанартай видео хичээлүүдээр таны карьерыг шинэ шатанд гаргана.
-              </p>
-
-              {/* trust checklist */}
-              <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm text-muted-foreground justify-center lg:justify-start">
-                {["HD чанартай видео", "Гэрчилгээ олгоно", "24/7 дэмжлэг"].map(t => (
-                  <li key={t} className="flex items-center gap-1.5">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#00E5A0" }} />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-7 py-3 w-full sm:w-auto text-center">
-                  Хичээлүүд үзэх
-                </a>
-                <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-7 py-3 w-full sm:w-auto text-center">
-                  Үнэгүй бүртгүүлэх
-                </a>
-              </div>
-
-              {/* mini stats */}
-              <div className="flex gap-8 justify-center lg:justify-start pt-1">
-                {[
-                  { val: stats.totalStudents || "100+", label: "Сурагч" },
-                  { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
-                  { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
-                ].map(s => (
-                  <div key={s.label}>
-                    <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-                  </div>
-                ))}
-              </div>
+            {/* pill badge */}
+            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
+              style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
+              <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
+              {featuredCourse?.category || "Монголын онлайн сургалт"}
             </div>
 
-            {/* ── Right: featured card ── */}
-            <div className="w-full max-w-[400px] mx-auto lg:mx-0">
+            {/* headline */}
+            <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
+              Чанартай{" "}
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд.</span>
+              <br />
+              <span className="text-foreground/60 text-3xl sm:text-4xl xl:text-5xl font-bold">Хэзээ ч, хаанаас ч.</span>
+            </h1>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+                Хичээлүүд үзэх
+              </a>
+              <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+                Үнэгүй бүртгүүлэх
+              </a>
+            </div>
+
+            {/* mini stats */}
+            <div className="flex gap-8 justify-center pt-1">
+              {[
+                { val: stats.totalStudents || "100+", label: "Сурагч" },
+                { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
+                { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
+              ].map(s => (
+                <div key={s.label}>
+                  <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Featured card — centered below heading ── */}
+          <div className="mt-10 w-full max-w-lg mx-auto">
               {featuredCourse ? (
                 <div className="ne-card overflow-hidden">
                   {/* thumbnail */}
@@ -210,9 +185,8 @@ export default async function Home() {
                   </div>
                 </div>
               )}
-            </div>
-
           </div>
+
         </div>
       </section>
 
