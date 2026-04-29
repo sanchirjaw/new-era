@@ -67,57 +67,67 @@ export default async function Home() {
           HERO
       ════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden" style={{ background: "var(--ne-hero-bg)" }}>
-        <div className="pointer-events-none absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-40"
-          style={{ background: "radial-gradient(circle, rgba(0,229,160,0.25) 0%, transparent 70%)" }} />
-        <div className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-30"
-          style={{ background: "radial-gradient(circle, rgba(123,97,255,0.3) 0%, transparent 70%)" }} />
+        {/* Orbs */}
+        <div className="pointer-events-none absolute -top-32 -left-32 w-[700px] h-[700px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(0,229,160,0.18) 0%, transparent 65%)" }} />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 w-[600px] h-[600px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(123,97,255,0.22) 0%, transparent 65%)" }} />
+        {/* subtle grid pattern */}
+        <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: "repeating-linear-gradient(0deg,#000 0,#000 1px,transparent 0,transparent 50%),repeating-linear-gradient(90deg,#000 0,#000 1px,transparent 0,transparent 50%)", backgroundSize: "40px 40px" }} />
 
-        <div className="relative container mx-auto px-4 sm:px-6 pt-10 pb-14 md:pt-20 md:pb-24">
+        <div className="relative container mx-auto px-4 sm:px-6 pt-14 pb-16 md:pt-24 md:pb-28">
 
           {/* ── Mobile: centered ── Desktop: 2-col ── */}
-          <div className="flex flex-col md:flex-row md:items-center md:gap-10 lg:gap-16">
+          <div className="flex flex-col md:flex-row md:items-center md:gap-12 lg:gap-20">
 
             {/* LEFT — text block */}
-            <div className="flex-1 text-center md:text-left space-y-5 max-w-xl mx-auto md:max-w-none md:mx-0">
+            <div className="flex-1 text-center md:text-left space-y-6 max-w-xl mx-auto md:max-w-none md:mx-0">
 
               {/* pill badge */}
-              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
-                style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
+              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border shadow-sm"
+                style={{ borderColor: "rgba(0,229,160,0.5)", background: "rgba(0,229,160,0.1)", color: "#00c87a" }}>
                 <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
                 {featuredCourse?.category || "Монголын онлайн сургалт"}
               </div>
 
               {/* headline */}
-              <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
+              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] text-foreground">
                 Чанартай{" "}
                 <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд.</span>
                 <br />
-                <span className="text-foreground/60 text-3xl sm:text-4xl xl:text-5xl font-bold">Хэзээ ч, хаанаас ч.</span>
+                <span className="text-foreground/50 text-3xl sm:text-4xl xl:text-5xl font-bold mt-1 block">Хэзээ ч, хаанаас ч.</span>
               </h1>
 
+              {/* description */}
+              <p className="text-base text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed">
+                Монголын тэргүүлэх онлайн сургалтын платформ. Мэргэжлийн багш нар, HD видео хичээл, гэрчилгээ.
+              </p>
+
               {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start pt-2">
-                <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                <a href="/courses" className="ne-btn-primary text-base px-9 py-3.5 w-full sm:w-auto text-center shadow-lg"
+                  style={{ boxShadow: "0 8px 24px rgba(0,229,160,0.35)" }}>
                   Хичээлүүд үзэх
                 </a>
-                <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+                <a href="/register" className="ne-btn-ghost text-base px-9 py-3.5 w-full sm:w-auto text-center">
                   Үнэгүй бүртгүүлэх
                 </a>
               </div>
 
-              {/* stats — merged from stats band */}
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
+              {/* stats row */}
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-1">
                 {[
                   { icon: <Users className="w-4 h-4" />, val: stats.totalStudents || "100+", label: "Сурагч" },
                   { icon: <Star className="w-4 h-4" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
-                  { icon: <Trophy className="w-4 h-4" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан хичээл" },
+                  { icon: <Trophy className="w-4 h-4" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан" },
                 ].map(s => (
                   <div key={s.label}
-                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border"
-                    style={{ borderColor: "rgba(0,229,160,0.25)", background: "rgba(0,229,160,0.06)" }}>
+                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border backdrop-blur-sm"
+                    style={{ borderColor: "rgba(0,229,160,0.3)", background: "rgba(255,255,255,0.6)" }}>
                     <span style={{ color: "#00E5A0" }}>{s.icon}</span>
                     <div>
-                      <p className="text-base font-black leading-none bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                      <p className="text-sm font-black leading-none bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">{s.label}</p>
                     </div>
                   </div>
@@ -125,43 +135,52 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* RIGHT — featured course card */}
-            <div className="mt-10 md:mt-0 md:w-[380px] lg:w-[420px] flex-shrink-0 w-full max-w-lg mx-auto md:max-w-none md:mx-0">
-              {featuredCourse ? (
-                <div className="ne-card overflow-hidden">
-                  {/* thumbnail */}
-                  <div className="relative aspect-[16/9] bg-muted overflow-hidden">
-                    {featuredCourse.thumbnailUrl ? (
-                      <img src={featuredCourse.thumbnailUrl} alt={featuredCourse.title}
-                        className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
-                        <Play className="w-12 h-12 text-white" />
+            {/* RIGHT — featured course card — larger & elevated */}
+            <div className="mt-12 md:mt-0 md:w-[440px] lg:w-[500px] flex-shrink-0 w-full max-w-lg mx-auto md:max-w-none md:mx-0">
+              {/* glow behind card */}
+              <div className="relative">
+                <div className="absolute -inset-4 rounded-3xl blur-2xl opacity-30"
+                  style={{ background: GRAD }} />
+                {featuredCourse ? (
+                  <div className="relative ne-card overflow-hidden shadow-2xl">
+                    {/* thumbnail — taller */}
+                    <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+                      {featuredCourse.thumbnailUrl ? (
+                        <img src={featuredCourse.thumbnailUrl} alt={featuredCourse.title}
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ background: GRAD }}>
+                          <Play className="w-16 h-16 text-white" />
+                        </div>
+                      )}
+                      {/* play button overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <div className="w-16 h-16 rounded-full bg-white/95 flex items-center justify-center shadow-xl">
+                          <Play className="w-7 h-7 text-gray-900 ml-1" />
+                        </div>
                       </div>
-                    )}
-                    {/* play overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
-                      <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                        <Play className="w-6 h-6 text-gray-900 ml-1" />
-                      </div>
+                      {/* gradient overlay at bottom */}
+                      <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
+                      {/* category badge */}
+                      {featuredCourse.category && (
+                        <span className="absolute top-4 left-4 ne-label text-xs">{featuredCourse.category}</span>
+                      )}
+                      {/* "Онцлох" badge */}
+                      <span className="absolute top-4 right-4 text-xs font-bold text-white bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1">
+                        ⭐ Онцлох
+                      </span>
                     </div>
-                    {/* category badge */}
-                    {featuredCourse.category && (
-                      <span className="absolute top-3 left-3 ne-label text-xs">{featuredCourse.category}</span>
-                    )}
-                  </div>
 
-                  <div className="p-5">
-                    <h3 className="text-base sm:text-lg font-bold text-card-foreground mb-1 line-clamp-1">
-                      {getDisplayTitle(featuredCourse.title)}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">
-                      {getDisplayDescription(featuredCourse.title, featuredCourse.description || "")}
-                    </p>
+                    <div className="p-6">
+                      <h3 className="text-lg font-black text-card-foreground mb-1.5 line-clamp-1">
+                        {getDisplayTitle(featuredCourse.title)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-5 line-clamp-2 leading-relaxed">
+                        {getDisplayDescription(featuredCourse.title, featuredCourse.description || "")}
+                      </p>
 
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-orange-500">
+                      <div className="flex items-center gap-3 mb-5">
+                        <span className="text-3xl font-black text-orange-500">
                           ₮{featuredCourse.price?.toLocaleString() || "0"}
                         </span>
                         {featuredCourse.originalPrice && featuredCourse.originalPrice > featuredCourse.price && (
@@ -175,26 +194,27 @@ export default async function Home() {
                           </>
                         )}
                       </div>
-                    </div>
 
-                    <a href={`/courses/${featuredCourse._id}`}
-                      className="ne-btn-primary w-full text-sm py-2.5 block text-center">
-                      Хичээлд элсэх
-                    </a>
+                      <a href={`/courses/${featuredCourse._id}`}
+                        className="ne-btn-primary w-full text-base py-3.5 block text-center font-bold"
+                        style={{ boxShadow: "0 6px 20px rgba(0,229,160,0.4)" }}>
+                        Хичээлд элсэх
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="ne-card overflow-hidden animate-pulse">
-                  <div className="aspect-[16/9] bg-muted" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-5 bg-muted rounded w-3/4" />
-                    <div className="h-4 bg-muted rounded w-full" />
-                    <div className="h-4 bg-muted rounded w-2/3" />
-                    <div className="h-8 bg-muted rounded w-1/3" />
-                    <div className="h-10 bg-muted rounded" />
+                ) : (
+                  <div className="relative ne-card overflow-hidden animate-pulse">
+                    <div className="aspect-[4/3] bg-muted" />
+                    <div className="p-6 space-y-3">
+                      <div className="h-5 bg-muted rounded w-3/4" />
+                      <div className="h-4 bg-muted rounded w-full" />
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                      <div className="h-9 bg-muted rounded w-1/3" />
+                      <div className="h-12 bg-muted rounded" />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
           </div>
