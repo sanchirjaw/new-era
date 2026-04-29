@@ -99,18 +99,18 @@ export default async function Home() {
                 <span className="text-foreground/50 text-3xl sm:text-4xl xl:text-5xl font-bold mt-1 block">Хэзээ ч, хаанаас ч.</span>
               </h1>
 
-              {/* description */}
-              <p className="text-base text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed">
+              {/* description — desktop only */}
+              <p className="hidden md:block text-base text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed">
                 Монголын тэргүүлэх онлайн сургалтын платформ. Мэргэжлийн багш нар, HD видео хичээл, гэрчилгээ.
               </p>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                <a href="/courses" className="ne-btn-primary text-base px-9 py-3.5 w-full sm:w-auto text-center shadow-lg"
+              {/* CTAs — 1 row on mobile, row on desktop */}
+              <div className="flex flex-row gap-2 justify-center md:justify-start md:gap-3">
+                <a href="/courses" className="ne-btn-primary text-sm md:text-base px-5 md:px-9 py-3 md:py-3.5 flex-1 md:flex-none text-center shadow-lg"
                   style={{ boxShadow: "0 8px 24px rgba(0,229,160,0.35)" }}>
                   Хичээлүүд үзэх
                 </a>
-                <a href="/register" className="ne-btn-ghost text-base px-9 py-3.5 w-full sm:w-auto text-center">
+                <a href="/register" className="ne-btn-ghost text-sm md:text-base px-5 md:px-9 py-3 md:py-3.5 flex-1 md:flex-none text-center">
                   Үнэгүй бүртгүүлэх
                 </a>
               </div>
