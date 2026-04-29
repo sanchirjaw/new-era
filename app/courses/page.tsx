@@ -107,27 +107,24 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-10 md:py-16">
-        <div className="text-center space-y-4">
-          <h1
-            className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-clip-text text-transparent"
-            style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
-          >
-            Бүх хичээлүүд
-          </h1>
-        </div>
-      </section>
+      {/* Page Header + inline filter */}
+      <section className="container mx-auto px-4 pt-10 md:pt-14 pb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1
+              className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
+            >
+              Бүх хичээлүүд
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">{displayCourses.length} хичээл олдлоо</p>
+          </div>
 
-      {/* Sorting Controls */}
-      {user && (
-        <section className="container mx-auto px-4 pb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Filter className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Хичээл шүүх:</span>
+          {user && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={sortOption} onValueChange={(value: SortOption) => setSortOption(value)}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-44 h-9 text-sm">
                   <SelectValue placeholder="Хичээл сонгох" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,12 +134,9 @@ export default function CoursesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {displayCourses.length} хичээл олдлоо
-            </div>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* Courses Grid */}
       <section className="container mx-auto px-4 pb-20">

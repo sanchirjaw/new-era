@@ -72,51 +72,56 @@ export default async function Home() {
         <div className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-30"
           style={{ background: "radial-gradient(circle, rgba(123,97,255,0.3) 0%, transparent 70%)" }} />
 
-        <div className="relative container mx-auto px-4 sm:px-6 pt-10 pb-14 md:pt-16 md:pb-20">
-          <div className="max-w-2xl mx-auto text-center space-y-5">
+        <div className="relative container mx-auto px-4 sm:px-6 pt-10 pb-14 md:pt-20 md:pb-24">
 
-            {/* pill badge */}
-            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
-              style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
-              <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
-              {featuredCourse?.category || "Монголын онлайн сургалт"}
+          {/* ── Mobile: centered ── Desktop: 2-col ── */}
+          <div className="flex flex-col md:flex-row md:items-center md:gap-10 lg:gap-16">
+
+            {/* LEFT — text block */}
+            <div className="flex-1 text-center md:text-left space-y-5 max-w-xl mx-auto md:max-w-none md:mx-0">
+
+              {/* pill badge */}
+              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold border"
+                style={{ borderColor: "rgba(0,229,160,0.4)", background: "rgba(0,229,160,0.08)", color: "#00c87a" }}>
+                <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
+                {featuredCourse?.category || "Монголын онлайн сургалт"}
+              </div>
+
+              {/* headline */}
+              <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
+                Чанартай{" "}
+                <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд.</span>
+                <br />
+                <span className="text-foreground/60 text-3xl sm:text-4xl xl:text-5xl font-bold">Хэзээ ч, хаанаас ч.</span>
+              </h1>
+
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start pt-2">
+                <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+                  Хичээлүүд үзэх
+                </a>
+                <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
+                  Үнэгүй бүртгүүлэх
+                </a>
+              </div>
+
+              {/* mini stats */}
+              <div className="flex gap-8 justify-center md:justify-start pt-1">
+                {[
+                  { val: stats.totalStudents || "100+", label: "Сурагч" },
+                  { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
+                  { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
+                ].map(s => (
+                  <div key={s.label}>
+                    <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* headline */}
-            <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
-              Чанартай{" "}
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд.</span>
-              <br />
-              <span className="text-foreground/60 text-3xl sm:text-4xl xl:text-5xl font-bold">Хэзээ ч, хаанаас ч.</span>
-            </h1>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <a href="/courses" className="ne-btn-primary text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
-                Хичээлүүд үзэх
-              </a>
-              <a href="/register" className="ne-btn-ghost text-sm sm:text-base px-8 py-3 w-full sm:w-auto text-center">
-                Үнэгүй бүртгүүлэх
-              </a>
-            </div>
-
-            {/* mini stats */}
-            <div className="flex gap-8 justify-center pt-1">
-              {[
-                { val: stats.totalStudents || "100+", label: "Сурагч" },
-                { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
-                { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
-              ].map(s => (
-                <div key={s.label}>
-                  <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Featured card — centered below heading ── */}
-          <div className="mt-10 w-full max-w-lg mx-auto">
+            {/* RIGHT — featured course card */}
+            <div className="mt-10 md:mt-0 md:w-[380px] lg:w-[420px] flex-shrink-0 w-full max-w-lg mx-auto md:max-w-none md:mx-0">
               {featuredCourse ? (
                 <div className="ne-card overflow-hidden">
                   {/* thumbnail */}
@@ -185,8 +190,9 @@ export default async function Home() {
                   </div>
                 </div>
               )}
-          </div>
+            </div>
 
+          </div>
         </div>
       </section>
 
