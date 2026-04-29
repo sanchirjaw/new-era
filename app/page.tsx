@@ -105,16 +105,21 @@ export default async function Home() {
                 </a>
               </div>
 
-              {/* mini stats */}
-              <div className="flex gap-8 justify-center md:justify-start pt-1">
+              {/* stats — merged from stats band */}
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
                 {[
-                  { val: stats.totalStudents || "100+", label: "Сурагч" },
-                  { val: stats.averageRating || "4.8★", label: "Үнэлгээ" },
-                  { val: courses.length ? `${courses.length}+` : "10+", label: "Хичээл" },
+                  { icon: <Users className="w-4 h-4" />, val: stats.totalStudents || "100+", label: "Сурагч" },
+                  { icon: <Star className="w-4 h-4" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
+                  { icon: <Trophy className="w-4 h-4" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан хичээл" },
                 ].map(s => (
-                  <div key={s.label}>
-                    <p className="text-xl sm:text-2xl font-black bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                  <div key={s.label}
+                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border"
+                    style={{ borderColor: "rgba(0,229,160,0.25)", background: "rgba(0,229,160,0.06)" }}>
+                    <span style={{ color: "#00E5A0" }}>{s.icon}</span>
+                    <div>
+                      <p className="text-base font-black leading-none bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>{s.val}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">{s.label}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -195,36 +200,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* ════════════════════════════════════════════════════
-          STATS BAND
-      ════════════════════════════════════════════════════ */}
-      <div style={{ background: GRAD }}>
-        <div className="container mx-auto px-4 py-5">
-          <div className="flex flex-wrap items-center justify-center sm:justify-around gap-6 max-w-3xl mx-auto">
-            {[
-              { icon: <Users className="w-5 h-5" />, val: stats.totalStudents || "100+", label: "Сурагч" },
-              { icon: <Star className="w-5 h-5" />, val: stats.averageRating || "4.8/5", label: "Үнэлгээ" },
-              { icon: <Trophy className="w-5 h-5" />, val: stats.completedLessons || "10,000+", label: "Дуусгасан хичээл" },
-            ].map(s => (
-              <div key={s.label} className="flex items-center gap-3 text-white">
-                <div className="opacity-80">{s.icon}</div>
-                <div>
-                  <p className="text-xl font-black leading-none">{s.val}</p>
-                  <p className="text-xs opacity-80 mt-0.5">{s.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ════════════════════════════════════════════════════
-          MEDIA GRID (desktop)
-      ════════════════════════════════════════════════════ */}
-      <div className="hidden md:block">
-        <PublicMediaGrid gridLayout={gridLayout} />
-      </div>
 
       {/* ════════════════════════════════════════════════════
           COURSES GRID
@@ -329,6 +304,13 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* ════════════════════════════════════════════════════
+          MEDIA GRID (desktop)
+      ════════════════════════════════════════════════════ */}
+      <div className="hidden md:block">
+        <PublicMediaGrid gridLayout={gridLayout} />
+      </div>
 
       {/* ════════════════════════════════════════════════════
           FEATURES  —  3 columns (all screen sizes)
