@@ -3,19 +3,19 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
-import { BookOpen, Clock, Trophy, Play } from "lucide-react"
+import { BookOpen, Play } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useRouter } from "next/navigation"
+import { CourseCard } from "@/components/course/CourseCard"
 
 interface CourseWithProgress extends Course {
   progress?: number
   completedLessons?: number
   enrollmentId?: string
+  expiresAt?: string | null
 }
 
 interface Stats {
@@ -182,39 +182,21 @@ export default function DashboardPage() {
           {courses.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => (
-                <Card key={course._id} className="overflow-hidden">
-                  <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
-                    {course.thumbnailUrl ? (
-                      <img
-                        src={course.thumbnailUrl}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Play className="w-12 h-12 text-muted-foreground" />
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-foreground mb-2">{course.title}</h3>
-                    <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{course.description}</p>
-
-                    {/* Progress Info */}
-                   
-
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary">{course.category}</Badge>
-                      <Button
-                        size="sm"
-                        className="bg-[#5B7FFF] hover:bg-[#4A6FE7]"
-                        asChild
-                      >
-                        <Link href={`/courses/${course._id}`}>
-                          Үргэлжлүүлэх
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CourseCard
+                  key={course._id}
+                  id={course._id?.toString() || ''}
+                  title={course.title}
+                  description={course.description}
+                  thumbnailUrl={course.thumbnailUrl}
+                  rating={course.rating}
+                  studentsCount={course.enrolledCount}
+                  isEnrolled={true}
+                  expiresAt={course.expiresAt}
+                  progressPct={course.progress || 0}
+                  teacherBadge={course.category}
+                  onOpen={(id) => router.push(`/courses/${id}`)}
+                  onContinue={(id) => router.push(`/courses/${id}/learn`)}
+                />
               ))}
             </div>
           ) : (

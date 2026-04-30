@@ -7,6 +7,7 @@ export type CourseCardProps = {
   studentsCount?: number
   priceMnt?: number // null/undefined when free or already purchased pricing hidden
   isEnrolled?: boolean
+  expiresAt?: string | null // ISO date string or null = lifetime
   progressPct?: number // 0-100, only for enrolled users
   level?: 'beginner' | 'intermediate' | 'advanced'
   durationMinutes?: number

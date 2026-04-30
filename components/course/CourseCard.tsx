@@ -13,7 +13,9 @@ import {
   Users,
   Star,
   Clock,
-  Wallet
+  Wallet,
+  CalendarClock,
+  Infinity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CourseCardProps } from "./types"
@@ -40,6 +42,7 @@ export function CourseCard({
   studentsCount,
   priceMnt,
   isEnrolled = false,
+  expiresAt,
   progressPct,
   level,
   durationMinutes,
@@ -50,6 +53,14 @@ export function CourseCard({
   testId
 }: CourseCardProps) {
   const isFree = priceMnt === 0
+
+  // Expiry helpers
+  const hasExpiry = isEnrolled && expiresAt
+  const expiryDate = hasExpiry ? new Date(expiresAt!) : null
+  const now = new Date()
+  const daysLeft = expiryDate ? Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
+  const isExpiringSoon = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
+  const isExpired = daysLeft !== null && daysLeft <= 0
 
   return (
     <TooltipProvider>
@@ -161,6 +172,31 @@ export function CourseCard({
               <p className="mt-1 text-xs text-muted-foreground">
                 Дэвшил: {progressPct}%
               </p>
+            </div>
+          )}
+
+          {/* Expiry badge */}
+          {isEnrolled && (
+            <div className={cn(
+              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold mt-1",
+              isExpired
+                ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+                : isExpiringSoon
+                  ? "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400"
+                  : hasExpiry
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                    : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+            )}>
+              {hasExpiry ? (
+                <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <Infinity className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
+              {isExpired
+                ? "Хугацаа дууссан"
+                : hasExpiry
+                  ? `${expiryDate!.toLocaleDateString("mn-MN")} хүртэл${isExpiringSoon ? ` · ${daysLeft} өдөр` : ""}`
+                  : "Насан туршид"}
             </div>
           )}
 

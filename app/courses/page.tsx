@@ -18,6 +18,7 @@ interface CourseWithProgress extends Course {
   progress?: number
   completedLessons?: number
   enrollmentId?: string
+  expiresAt?: string | null
 }
 
 type SortOption = "all" | "enrolled" | "not-enrolled"
@@ -26,6 +27,7 @@ export default function CoursesPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [allCourses, setAllCourses] = useState<Course[]>([])
+  const [enrollmentExpiries, setEnrollmentExpiries] = useState<Record<string, string | null>>({})
   const [dataLoading, setDataLoading] = useState(true)
   const [sortOption, setSortOption] = useState<SortOption>("all")
 
@@ -34,7 +36,6 @@ export default function CoursesPage() {
       try {
         setDataLoading(true)
 
-        // Always show all available courses on the main courses page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://edunewera.mn')
 
@@ -42,6 +43,17 @@ export default function CoursesPage() {
         if (response.ok) {
           const data = await response.json()
           setAllCourses(data.courses || [])
+        }
+
+        // Fetch enrollment expiries if user is logged in
+        if (user) {
+          try {
+            const meRes = await fetch('/api/auth/me')
+            if (meRes.ok) {
+              const meData = await meRes.json()
+              setEnrollmentExpiries(meData.user?.enrollmentExpiries || {})
+            }
+          } catch {}
         }
       } catch (error) {
         console.error("Error fetching courses:", error)
@@ -53,7 +65,7 @@ export default function CoursesPage() {
     if (!loading) {
       fetchCourses()
     }
-  }, [loading])
+  }, [loading, user])
 
   if (loading || dataLoading) {
     return (
@@ -158,9 +170,10 @@ export default function CoursesPage() {
                 thumbnailUrl={course.thumbnailUrl}
                 rating={course.rating}
                 studentsCount={course.enrolledCount}
-                priceMnt={course.price}
+                priceMnt={isUserEnrolledInCourse(course._id || '') ? undefined : course.price}
                 isEnrolled={isUserEnrolledInCourse(course._id || '')}
-                progressPct={0} // TODO: Add progress tracking
+                expiresAt={enrollmentExpiries[course._id || ''] ?? undefined}
+                progressPct={0}
                 teacherBadge={course.category}
                 onOpen={handleCourseOpen}
                 onBuy={handleCourseBuy}

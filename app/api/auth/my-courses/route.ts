@@ -27,16 +27,20 @@ export async function GET(request: NextRequest) {
       if (user && user.enrolledCourses && user.enrolledCourses.length > 0) {
         const courses = []
         
+        // Get all enrollments for expiry lookup
+        const client = await (await import("@/lib/mongodb")).default
+        const db_conn = client.db("new-era-platform")
+
         for (const courseId of user.enrolledCourses) {
           // Use getCourseWithLessons like the stats API does
           const courseObjectId = typeof courseId === 'string' ? new ObjectId(courseId) : courseId
           const course = await db.getCourseWithLessons(courseObjectId)
-          
+
           if (course && course.isActive) {
             // Get user progress for this course
             let progress = 0
             let completedLessons = 0
-            
+
             try {
               if (!user._id) continue
               const courseObjectId = typeof courseId === 'string' ? new ObjectId(courseId) : courseId
@@ -47,11 +51,20 @@ export async function GET(request: NextRequest) {
             } catch (error) {
               // Handle progress fetch error silently
             }
-            
+
+            // Get enrollment expiry
+            const userOid = typeof user._id === 'string' ? new ObjectId(user._id) : user._id
+            const enrollment = await db_conn.collection("enrollments").findOne({
+              userId: userOid,
+              courseId: courseObjectId,
+              isActive: true
+            })
+
             courses.push({
               ...course,
               progress,
-              completedLessons
+              completedLessons,
+              expiresAt: enrollment?.expiresAt ? enrollment.expiresAt.toISOString() : null
             })
           }
         }
@@ -82,32 +95,40 @@ export async function GET(request: NextRequest) {
     }
 
     const courses = []
-    
+    const client2 = await (await import("@/lib/mongodb")).default
+    const db_conn2 = client2.db("new-era-platform")
+
     for (const courseId of userData.enrolledCourses) {
-      // Use getCourseWithLessons like the stats API does
       const courseObjectId = typeof courseId === 'string' ? new ObjectId(courseId) : courseId
       const course = await db.getCourseWithLessons(courseObjectId)
-     
-      
+
       if (course && course.isActive) {
-        // Get user progress for this course
         let progress = 0
         let completedLessons = 0
-        
+
         try {
-          const courseObjectId = typeof courseId === 'string' ? new ObjectId(courseId) : courseId
-          const userObjectId = typeof userId === 'string' ? new ObjectId(userId) : userId
-          const userProgress = await db.getUserProgress(userObjectId, courseObjectId)
+          const courseObjId = typeof courseId === 'string' ? new ObjectId(courseId) : courseId
+          const userObjId = typeof userId === 'string' ? new ObjectId(userId) : new ObjectId(userId as string)
+          const userProgress = await db.getUserProgress(userObjId, courseObjId)
           progress = userProgress.progress || 0
           completedLessons = userProgress.completedLessons?.length || 0
         } catch (error) {
           // Handle progress fetch error silently
         }
-        
+
+        // Get enrollment expiry
+        const userOid = new ObjectId(userId as string)
+        const enrollment = await db_conn2.collection("enrollments").findOne({
+          userId: userOid,
+          courseId: courseObjectId,
+          isActive: true
+        })
+
         courses.push({
           ...course,
           progress,
-          completedLessons
+          completedLessons,
+          expiresAt: enrollment?.expiresAt ? enrollment.expiresAt.toISOString() : null
         })
       }
     }
