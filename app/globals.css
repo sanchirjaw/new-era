@@ -12,17 +12,36 @@
 /* Ensure dialogs always render on top of everything including admin sidebar */
 [data-slot="dialog-overlay"] {
   z-index: 9998 !important;
+  pointer-events: none !important;
 }
 [data-slot="dialog-content"] {
   z-index: 9999 !important;
+  pointer-events: auto !important;
 }
 [data-slot="dialog-content"] input,
 [data-slot="dialog-content"] textarea,
 [data-slot="dialog-content"] button,
 [data-slot="dialog-content"] select {
   pointer-events: auto !important;
+}
+
+/* Select / Combobox popper rendered outside dialog via portal */
+[data-radix-popper-content-wrapper] {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+[data-radix-select-content],
+[data-radix-select-viewport],
+[data-radix-select-item] {
+  pointer-events: auto !important;
+}
+
+/* SelectTrigger button inside dialog must be fully interactive */
+[data-slot="dialog-content"] [data-slot="select-trigger"],
+[data-slot="dialog-content"] [role="combobox"] {
+  pointer-events: auto !important;
   position: relative;
-  z-index: 1;
+  z-index: 10;
 }
 
 /* Custom animations for auth forms */
