@@ -891,35 +891,41 @@ export default function AdminCourses() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="courseAccess">⏱ Хандах хугацаа</Label>
-                      <Select
-                        value={courseFormData.accessDurationMonths === null ? "lifetime" : String(courseFormData.accessDurationMonths)}
-                        onValueChange={(v) => setCourseFormData({ ...courseFormData, accessDurationMonths: v === "lifetime" ? null : parseInt(v) })}
-                      >
-                        <SelectTrigger id="courseAccess">
-                          <SelectValue placeholder="Хугацаа сонгох" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="lifetime">♾ Насан туршид</SelectItem>
-                          <SelectItem value="1">1 сар</SelectItem>
-                          <SelectItem value="3">3 сар</SelectItem>
-                          <SelectItem value="6">6 сар</SelectItem>
-                          <SelectItem value="12">1 жил (12 сар)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="courseAccess">⏱ Хандах хугацаа (сар)</Label>
+                      <Input
+                        id="courseAccess"
+                        type="number"
+                        min={0}
+                        max={12}
+                        value={courseFormData.accessDurationMonths ?? 0}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value) || 0
+                          setCourseFormData({ ...courseFormData, accessDurationMonths: v === 0 ? null : v })
+                        }}
+                        placeholder="0 = насан туршид"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {!courseFormData.accessDurationMonths ? "♾ Насан туршид" : `⏱ ${courseFormData.accessDurationMonths} сар`}
+                      </p>
                     </div>
                     <div>
-                      <Label htmlFor="courseLevel">Түвшин</Label>
-                      <Select value={courseFormData.level} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setCourseFormData({ ...courseFormData, level: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="beginner">Анхан шат</SelectItem>
-                          <SelectItem value="intermediate">Дундаж</SelectItem>
-                          <SelectItem value="advanced">Ахисан шат</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Түвшин</Label>
+                      <div className="flex gap-2 mt-1">
+                        {(["beginner", "intermediate", "advanced"] as const).map((lvl) => (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setCourseFormData({ ...courseFormData, level: lvl })}
+                            className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                              courseFormData.level === lvl
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "border-gray-300 text-gray-700 hover:border-blue-400"
+                            }`}
+                          >
+                            {lvl === "beginner" ? "Анхан" : lvl === "intermediate" ? "Дунд" : "Ахисан"}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <Button onClick={handleCreateCourse} className="w-full" disabled={thumbnailUploadLoading}>
@@ -1322,37 +1328,43 @@ export default function AdminCourses() {
                 />
               </div>
               <div>
-                <Label htmlFor="editCourseAccess">⏱ Хандах хугацаа</Label>
-                <Select
-                  value={editCourseFormData.accessDurationMonths === null ? "lifetime" : String(editCourseFormData.accessDurationMonths ?? "lifetime")}
-                  onValueChange={(v) => setEditCourseFormData({ ...editCourseFormData, accessDurationMonths: v === "lifetime" ? null : parseInt(v) })}
-                >
-                  <SelectTrigger id="editCourseAccess">
-                    <SelectValue placeholder="Хугацаа" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lifetime">♾ Насан туршид</SelectItem>
-                    <SelectItem value="1">1 сар</SelectItem>
-                    <SelectItem value="3">3 сар</SelectItem>
-                    <SelectItem value="6">6 сар</SelectItem>
-                    <SelectItem value="12">1 жил</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="editCourseAccess">⏱ Хандах хугацаа (сар)</Label>
+                <Input
+                  id="editCourseAccess"
+                  type="number"
+                  min={0}
+                  max={12}
+                  value={editCourseFormData.accessDurationMonths ?? 0}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value) || 0
+                    setEditCourseFormData({ ...editCourseFormData, accessDurationMonths: v === 0 ? null : v })
+                  }}
+                  placeholder="0 = насан туршид"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {!editCourseFormData.accessDurationMonths ? "♾ Насан туршид" : `⏱ ${editCourseFormData.accessDurationMonths} сар`}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label htmlFor="editCourseLevel">Level</Label>
-                <Select value={editCourseFormData.level} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setEditCourseFormData({ ...editCourseFormData, level: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="editCourseLevel">Түвшин</Label>
+                <div className="flex gap-2 mt-1">
+                  {(["beginner", "intermediate", "advanced"] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setEditCourseFormData({ ...editCourseFormData, level: lvl })}
+                      className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                        editCourseFormData.level === lvl
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "border-gray-300 text-gray-700 hover:border-blue-400"
+                      }`}
+                    >
+                      {lvl === "beginner" ? "Анхан" : lvl === "intermediate" ? "Дунд" : "Ахисан"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">

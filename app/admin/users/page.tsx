@@ -529,39 +529,26 @@ export default function AdminUsers() {
             <DialogTitle>Manage Course Access</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
-            {/* Duration selector */}
+            {/* Duration input */}
             <div>
-              <Label className="text-sm font-semibold">⏱ Хандах хугацаа</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {[
-                  { label: "1 сар", value: 1 },
-                  { label: "3 сар", value: 3 },
-                  { label: "6 сар", value: 6 },
-                  { label: "1 жил", value: 12 },
-                  { label: "Насан туршид", value: null },
-                ].map(opt => (
-                  <button
-                    key={String(opt.value)}
-                    type="button"
-                    onClick={() => setCourseAccessData(prev => ({ ...prev, durationMonths: opt.value }))}
-                    className={`px-4 py-1.5 rounded-full border text-sm font-semibold transition-all ${
-                      courseAccessData.durationMonths === opt.value
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "border-gray-300 text-gray-700 hover:border-blue-400"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {courseAccessData.durationMonths !== null && courseAccessData.durationMonths !== undefined && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Дуусах огноо: {new Date(Date.now() + courseAccessData.durationMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("mn-MN")}
-                </p>
-              )}
-              {courseAccessData.durationMonths === null && (
-                <p className="text-xs text-green-600 mt-1">♾ Хугацаагүй нэвтрэх эрх</p>
-              )}
+              <Label className="text-sm font-semibold">⏱ Хандах хугацаа (сар, 0 = насан туршид)</Label>
+              <input
+                type="number"
+                min={0}
+                max={12}
+                value={courseAccessData.durationMonths ?? 0}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value) || 0
+                  setCourseAccessData(prev => ({ ...prev, durationMonths: v === 0 ? null : v }))
+                }}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0 = насан туршид"
+              />
+              <p className="text-xs mt-1" style={{ color: courseAccessData.durationMonths ? "#2563eb" : "#16a34a" }}>
+                {!courseAccessData.durationMonths
+                  ? "♾ Насан туршид нэвтрэх эрх"
+                  : `⏱ Дуусах огноо: ${new Date(Date.now() + (courseAccessData.durationMonths ?? 0) * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("mn-MN")}`}
+              </p>
             </div>
 
             {/* Course list */}
