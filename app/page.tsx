@@ -176,9 +176,30 @@ export default async function Home() {
                       <h3 className="text-lg font-black text-card-foreground mb-1.5 line-clamp-1">
                         {getDisplayTitle(featuredCourse.title)}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-5 line-clamp-2 leading-relaxed">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
                         {getDisplayDescription(featuredCourse.title, featuredCourse.description || "")}
                       </p>
+
+                      {/* Access duration info */}
+                      {(featuredCourse as any).accessDurationMonths ? (
+                        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl text-xs font-semibold"
+                          style={{ background: "rgba(123,97,255,0.08)", color: "#7B61FF", border: "1px solid rgba(123,97,255,0.2)" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                          Хандалтын хугацаа: <strong>{(featuredCourse as any).accessDurationMonths} сар</strong>
+                          <span className="ml-auto opacity-60">Хугацаатай</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl text-xs font-semibold"
+                          style={{ background: "rgba(0,229,160,0.08)", color: "#00c87a", border: "1px solid rgba(0,229,160,0.2)" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                          </svg>
+                          Насан туршдын хандалт
+                          <span className="ml-auto">♾</span>
+                        </div>
+                      )}
 
                       <div className="flex items-center gap-3 mb-5">
                         <span className="text-3xl font-black text-orange-500">
