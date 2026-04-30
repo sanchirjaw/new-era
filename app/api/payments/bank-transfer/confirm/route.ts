@@ -53,12 +53,20 @@ export async function POST(request: NextRequest) {
                     { session }
                 )
 
+                // Look up course duration
+                const course = await db_conn.collection("courses").findOne({ _id: payment.courseId })
+                const enrolledAt = new Date()
+                const expiresAt = course?.accessDurationMonths
+                  ? new Date(enrolledAt.getTime() + course.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+                  : null
+
                 // Create enrollment
                 await db_conn.collection("enrollments").insertOne({
                     userId: payment.userId,
                     courseId: payment.courseId,
                     paymentId: new ObjectId(paymentId),
-                    enrolledAt: new Date(),
+                    enrolledAt,
+                    expiresAt,
                     completedLessons: [],
                     progress: 0,
                     isActive: true,

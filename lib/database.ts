@@ -193,6 +193,45 @@ export class Database {
     return await db.collection("enrollments").find({ userId, isActive: true }).toArray()
   }
 
+  async getEnrollmentByUserAndCourse(userId: ObjectId, courseId: ObjectId): Promise<Enrollment | null> {
+    const client = await this.getClient()
+    const db = client.db("new-era-platform")
+    return await db.collection("enrollments").findOne({ userId, courseId })
+  }
+
+  // Deactivate expired enrollments for a user; returns array of expired courseId strings
+  async deactivateExpiredEnrollments(userId: ObjectId): Promise<string[]> {
+    const client = await this.getClient()
+    const db = client.db("new-era-platform")
+    const now = new Date()
+
+    // Find active enrollments that have an expiresAt in the past
+    const expired = await db.collection("enrollments").find({
+      userId,
+      isActive: true,
+      expiresAt: { $lt: now, $ne: null }
+    }).toArray()
+
+    if (expired.length === 0) return []
+
+    const expiredIds = expired.map((e: any) => e._id)
+    const expiredCourseIds = expired.map((e: any) => e.courseId?.toString())
+
+    // Deactivate enrollments
+    await db.collection("enrollments").updateMany(
+      { _id: { $in: expiredIds } },
+      { $set: { isActive: false } }
+    )
+
+    // Remove from user's enrolledCourses
+    await db.collection("users").updateOne(
+      { _id: userId },
+      { $pull: { enrolledCourses: { $in: expiredCourseIds } } as any }
+    )
+
+    return expiredCourseIds
+  }
+
   async deleteEnrollment(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
     const db = client.db("new-era-platform")
@@ -203,9 +242,9 @@ export class Database {
   async getCourseEnrollmentCount(courseId: ObjectId): Promise<number> {
     const client = await this.getClient()
     const db = client.db("new-era-platform")
-    return await db.collection("enrollments").countDocuments({ 
-      courseId, 
-      isActive: true 
+    return await db.collection("enrollments").countDocuments({
+      courseId,
+      isActive: true
     })
   }
 

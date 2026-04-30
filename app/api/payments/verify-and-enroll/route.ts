@@ -49,6 +49,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No completed payment found" }, { status: 404 })
     }
 
+    // Look up course to get accessDurationMonths
+    const course = await db_conn.collection("courses").findOne({ _id: new ObjectId(courseId) })
+    const enrolledAt = new Date()
+    const expiresAt = (course?.accessDurationMonths)
+      ? new Date(enrolledAt.getTime() + course.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+      : null
+
     // Check if already enrolled
     const existingEnrollment = await db_conn.collection("enrollments").findOne({
       userId: new ObjectId(user.id),
@@ -56,7 +63,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingEnrollment) {
-      // Ensure user has course in enrolledCourses array (single operation)
+      // Renew expiry on re-payment
+      await db_conn.collection("enrollments").updateOne(
+        { _id: existingEnrollment._id },
+        { $set: { isActive: true, expiresAt, enrolledAt } }
+      )
       await db_conn.collection("users").updateOne(
         { _id: new ObjectId(user.id) },
         { $addToSet: { enrolledCourses: courseId } }
@@ -75,7 +86,8 @@ export async function POST(request: NextRequest) {
           userId: new ObjectId(user.id),
           courseId: new ObjectId(courseId),
           paymentId: payment._id,
-          enrolledAt: new Date(),
+          enrolledAt,
+          expiresAt,
           completedLessons: [],
           progress: 0,
           isActive: true,

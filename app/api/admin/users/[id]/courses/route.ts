@@ -87,20 +87,18 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
     }
 
-    const { courseIds } = await request.json()
+    const { courseIds, durationMonths } = await request.json()
+    // durationMonths: number (1,3,6,12) or null = lifetime
 
     // Validate input
     if (!Array.isArray(courseIds)) {
       return NextResponse.json({ error: "courseIds must be an array" }, { status: 400 })
     }
 
-    // Validate that all course IDs are valid ObjectIds
     const validCourseIds = courseIds.filter((courseId: string) => ObjectId.isValid(courseId))
     if (validCourseIds.length !== courseIds.length) {
       return NextResponse.json({ error: "Invalid course ID format" }, { status: 400 })
     }
-
-    const normalizedCourseIds = validCourseIds.map((courseId: string) => new ObjectId(courseId))
 
     // Check if user exists
     const existingUser = await db.getUserById(userId)
@@ -108,18 +106,61 @@ export async function PUT(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Update user's enrolled courses
-    const success = await db.updateUser(userId, {
-      enrolledCourses: normalizedCourseIds as any
-    })
-    
-    if (!success) {
-      return NextResponse.json({ error: "Failed to update user course access" }, { status: 500 })
+    const client = await (await import("@/lib/mongodb")).default
+    const db_conn = client.db("new-era-platform")
+
+    const enrolledAt = new Date()
+    const expiresAt = durationMonths
+      ? new Date(enrolledAt.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000)
+      : null
+
+    // Upsert enrollment for each selected course
+    for (const courseId of validCourseIds) {
+      const existing = await db_conn.collection("enrollments").findOne({
+        userId,
+        courseId: new ObjectId(courseId)
+      })
+      if (existing) {
+        // Renew/update expiry
+        await db_conn.collection("enrollments").updateOne(
+          { _id: existing._id },
+          { $set: { isActive: true, expiresAt, enrolledAt } }
+        )
+      } else {
+        await db_conn.collection("enrollments").insertOne({
+          userId,
+          courseId: new ObjectId(courseId),
+          paymentId: new ObjectId(), // admin grant — no real payment
+          enrolledAt,
+          expiresAt,
+          completedLessons: [],
+          progress: 0,
+          isActive: true,
+        })
+      }
     }
 
-    return NextResponse.json({ 
+    // Remove enrollments for courses no longer in the list
+    const removedCourseIds = (existingUser.enrolledCourses || [])
+      .map((c: any) => c.toString())
+      .filter((c: string) => !validCourseIds.includes(c))
+
+    if (removedCourseIds.length > 0) {
+      await db_conn.collection("enrollments").updateMany(
+        { userId, courseId: { $in: removedCourseIds.map((c: string) => new ObjectId(c)) } },
+        { $set: { isActive: false } }
+      )
+    }
+
+    // Update user's enrolledCourses array
+    await db.updateUser(userId, {
+      enrolledCourses: validCourseIds.map((c: string) => new ObjectId(c)) as any
+    })
+
+    return NextResponse.json({
       message: "User course access updated successfully",
-      enrolledCourses: normalizedCourseIds.map((courseId) => courseId.toString())
+      enrolledCourses: validCourseIds,
+      expiresAt: expiresAt?.toISOString() || null,
     })
   } catch (error) {
     console.error("Failed to update user course access:", error)

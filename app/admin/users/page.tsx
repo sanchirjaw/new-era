@@ -21,6 +21,7 @@ interface User {
   role: "student" | "admin"
   profilePicture?: string
   enrolledCourses: string[]
+  enrollmentExpiries?: Record<string, string | null>
   createdAt: string
   googleId?: string
 }
@@ -51,9 +52,11 @@ export default function AdminUsers() {
   const [courseAccessData, setCourseAccessData] = useState<{
     userId: string
     courseIds: string[]
+    durationMonths: number | null
   }>({
     userId: "",
-    courseIds: []
+    courseIds: [],
+    durationMonths: null
   })
   const router = useRouter()
   const { toast } = useToast()
@@ -238,7 +241,10 @@ export default function AdminUsers() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         cache: "no-store",
-        body: JSON.stringify({ courseIds: courseAccessData.courseIds })
+        body: JSON.stringify({
+          courseIds: courseAccessData.courseIds,
+          durationMonths: courseAccessData.durationMonths
+        })
       })
 
       if (response.ok) {
@@ -247,7 +253,7 @@ export default function AdminUsers() {
           description: "Course access updated successfully"
         })
         setIsCourseAccessDialogOpen(false)
-        setCourseAccessData({ userId: "", courseIds: [] })
+        setCourseAccessData({ userId: "", courseIds: [], durationMonths: null })
         fetchUsers()
       } else {
         const error = await response.json()
@@ -270,7 +276,8 @@ export default function AdminUsers() {
   const openCourseAccessDialog = (user: User) => {
     setCourseAccessData({
       userId: user._id,
-      courseIds: user.enrolledCourses || []
+      courseIds: user.enrolledCourses || [],
+      durationMonths: null
     })
     setIsCourseAccessDialogOpen(true)
   }
@@ -405,16 +412,23 @@ export default function AdminUsers() {
                           {user.enrolledCourses?.length || 0} courses
                         </Badge>
                       </div>
-                      {/* Show enrolled courses */}
+                      {/* Show enrolled courses with expiry */}
                       {user.enrolledCourses && user.enrolledCourses.length > 0 && (
                         <div className="mt-2">
-                          <p className="text-xs text-gray-500 mb-1">Enrolled courses:</p>
+                          <p className="text-xs text-gray-500 mb-1">Элссэн хичээлүүд:</p>
                           <div className="flex flex-wrap gap-1">
-                            {getUserEnrolledCourses(user).map(course => (
-                              <Badge key={course._id} variant="secondary" className="text-xs">
-                                {course.title}
-                              </Badge>
-                            ))}
+                            {getUserEnrolledCourses(user).map(course => {
+                              const expiry = user.enrollmentExpiries?.[course._id]
+                              const isExpired = expiry && new Date(expiry) < new Date()
+                              return (
+                                <Badge key={course._id} variant={isExpired ? "destructive" : "secondary"} className="text-xs">
+                                  {course.title}
+                                  {expiry
+                                    ? ` · ${isExpired ? "⛔" : "⏱"} ${new Date(expiry).toLocaleDateString("mn-MN")}`
+                                    : " · ♾"}
+                                </Badge>
+                              )
+                            })}
                           </div>
                         </div>
                       )}
@@ -514,9 +528,45 @@ export default function AdminUsers() {
           <DialogHeader>
             <DialogTitle>Manage Course Access</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Duration selector */}
             <div>
-              <Label>Select courses to grant access:</Label>
+              <Label className="text-sm font-semibold">⏱ Хандах хугацаа</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  { label: "1 сар", value: 1 },
+                  { label: "3 сар", value: 3 },
+                  { label: "6 сар", value: 6 },
+                  { label: "1 жил", value: 12 },
+                  { label: "Насан туршид", value: null },
+                ].map(opt => (
+                  <button
+                    key={String(opt.value)}
+                    type="button"
+                    onClick={() => setCourseAccessData(prev => ({ ...prev, durationMonths: opt.value }))}
+                    className={`px-4 py-1.5 rounded-full border text-sm font-semibold transition-all ${
+                      courseAccessData.durationMonths === opt.value
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "border-gray-300 text-gray-700 hover:border-blue-400"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {courseAccessData.durationMonths !== null && courseAccessData.durationMonths !== undefined && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Дуусах огноо: {new Date(Date.now() + courseAccessData.durationMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("mn-MN")}
+                </p>
+              )}
+              {courseAccessData.durationMonths === null && (
+                <p className="text-xs text-green-600 mt-1">♾ Хугацаагүй нэвтрэх эрх</p>
+              )}
+            </div>
+
+            {/* Course list */}
+            <div>
+              <Label className="text-sm font-semibold">📚 Хичээл сонгох</Label>
               <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
                 {courses.map((course) => (
                   <div key={course._id} className="flex items-center space-x-2">
@@ -541,24 +591,25 @@ export default function AdminUsers() {
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{course.title}</span>
                         <Badge variant={course.isActive ? "default" : "secondary"}>
-                          {course.isActive ? "Active" : "Inactive"}
+                          {course.isActive ? "Идэвхтэй" : "Идэвхгүй"}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-500">{course.description}</p>
                     </Label>
                   </div>
                 ))}
               </div>
             </div>
+
             <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsCourseAccessDialogOpen(false)}
-              >
-                Cancel
+              <Button variant="outline" onClick={() => setIsCourseAccessDialogOpen(false)}>
+                Болих
               </Button>
-              <Button onClick={handleCourseAccess}>
-                Update Course Access
+              <Button
+                onClick={handleCourseAccess}
+                disabled={courseAccessData.durationMonths === undefined}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Хандах эрх олгох
               </Button>
             </div>
           </div>

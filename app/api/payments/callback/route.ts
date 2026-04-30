@@ -28,12 +28,20 @@ export async function POST(request: NextRequest) {
       // Update payment status
       await db.updatePaymentStatus(new ObjectId(payment._id), "completed", payment_id, "qpay")
 
+      // Look up course duration
+      const course = await db_conn.collection("courses").findOne({ _id: payment.courseId })
+      const enrolledAt = new Date()
+      const expiresAt = course?.accessDurationMonths
+        ? new Date(enrolledAt.getTime() + course.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+        : null
+
       // Create enrollment
       await db.createEnrollment({
         userId: payment.userId,
         courseId: payment.courseId,
         paymentId: new ObjectId(payment._id),
-        enrolledAt: new Date(),
+        enrolledAt,
+        expiresAt,
         completedLessons: [],
         progress: 0,
         isActive: true,

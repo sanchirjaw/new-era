@@ -16,6 +16,7 @@ export interface Course {
   rating: number
   totalRatings: number
   isActive: boolean
+  accessDurationMonths?: number | null  // null = lifetime, e.g. 1, 3, 6, 12
   createdAt: Date
   updatedAt: Date
 }

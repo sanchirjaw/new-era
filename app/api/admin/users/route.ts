@@ -38,8 +38,24 @@ export async function GET(request: NextRequest) {
     // Get all users
     const users = await db.getAllUsers()
 
+    // Enrich each user with enrollmentExpiries from enrollments collection
+    const client = await (await import("@/lib/mongodb")).default
+    const db_conn = client.db("new-era-platform")
+
+    const enrichedUsers = await Promise.all(users.map(async (u: any) => {
+      const enrollments = await db_conn.collection("enrollments").find({
+        userId: u._id,
+        isActive: true
+      }).toArray()
+      const enrollmentExpiries: Record<string, string | null> = {}
+      for (const e of enrollments) {
+        enrollmentExpiries[e.courseId?.toString()] = e.expiresAt ? e.expiresAt.toISOString() : null
+      }
+      return { ...u, enrollmentExpiries }
+    }))
+
     return NextResponse.json(
-      { users },
+      { users: enrichedUsers },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

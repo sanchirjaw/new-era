@@ -44,6 +44,7 @@ interface Course {
   description: string
   price: number
   originalPrice?: number
+  accessDurationMonths?: number | null
   category: string
   level: "beginner" | "intermediate" | "advanced"
   duration: number
@@ -107,6 +108,7 @@ export default function AdminCourses() {
     description: "",
     price: 0,
     originalPrice: 0,
+    accessDurationMonths: null as number | null,
     category: "",
     level: "beginner" as "beginner" | "intermediate" | "advanced",
     isActive: true,
@@ -125,6 +127,7 @@ export default function AdminCourses() {
     description: "",
     price: 0,
     originalPrice: 0,
+    accessDurationMonths: null as number | null,
     category: "",
     level: "beginner" as "beginner" | "intermediate" | "advanced",
     isActive: true,
@@ -249,6 +252,7 @@ export default function AdminCourses() {
         description: courseFormData.description,
         price: courseFormData.price,
         originalPrice: courseFormData.originalPrice,
+        accessDurationMonths: courseFormData.accessDurationMonths,
         category: courseFormData.category,
         level: courseFormData.level,
         isActive: courseFormData.isActive,
@@ -887,6 +891,24 @@ export default function AdminCourses() {
                       />
                     </div>
                     <div>
+                      <Label htmlFor="courseAccess">⏱ Хандах хугацаа</Label>
+                      <Select
+                        value={courseFormData.accessDurationMonths === null ? "lifetime" : String(courseFormData.accessDurationMonths)}
+                        onValueChange={(v) => setCourseFormData({ ...courseFormData, accessDurationMonths: v === "lifetime" ? null : parseInt(v) })}
+                      >
+                        <SelectTrigger id="courseAccess">
+                          <SelectValue placeholder="Хугацаа сонгох" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lifetime">♾ Насан туршид</SelectItem>
+                          <SelectItem value="1">1 сар</SelectItem>
+                          <SelectItem value="3">3 сар</SelectItem>
+                          <SelectItem value="6">6 сар</SelectItem>
+                          <SelectItem value="12">1 жил (12 сар)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label htmlFor="courseLevel">Түвшин</Label>
                       <Select value={courseFormData.level} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setCourseFormData({ ...courseFormData, level: value })}>
                         <SelectTrigger>
@@ -944,6 +966,11 @@ export default function AdminCourses() {
                           <span>Үнэ: ₮{course.price}</span>
                           <span>Дэд хичээл: {getCourseSubCourses(course._id).length}</span>
                           <span>Сурагчид: {course.enrolledCount}</span>
+                          <span className="font-semibold text-blue-600">
+                            {course.accessDurationMonths
+                              ? `⏱ ${course.accessDurationMonths} сар`
+                              : "♾ Насан туршид"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -971,6 +998,7 @@ export default function AdminCourses() {
                             description: course.description,
                             price: course.price,
                             originalPrice: course.originalPrice || 0,
+                            accessDurationMonths: course.accessDurationMonths ?? null,
                             category: course.category,
                             level: course.level,
                             isActive: course.isActive,
@@ -1276,7 +1304,7 @@ export default function AdminCourses() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="editCoursePrice">Price (₮)</Label>
+                <Label htmlFor="editCoursePrice">Үнэ (₮)</Label>
                 <Input
                   id="editCoursePrice"
                   type="number"
@@ -1285,7 +1313,7 @@ export default function AdminCourses() {
                 />
               </div>
               <div>
-                <Label htmlFor="editCourseOriginalPrice">Original Price (₮)</Label>
+                <Label htmlFor="editCourseOriginalPrice">Анхны үнэ (₮)</Label>
                 <Input
                   id="editCourseOriginalPrice"
                   type="number"
@@ -1293,6 +1321,26 @@ export default function AdminCourses() {
                   onChange={(e) => setEditCourseFormData({ ...editCourseFormData, originalPrice: parseInt(e.target.value) || 0 })}
                 />
               </div>
+              <div>
+                <Label htmlFor="editCourseAccess">⏱ Хандах хугацаа</Label>
+                <Select
+                  value={editCourseFormData.accessDurationMonths === null ? "lifetime" : String(editCourseFormData.accessDurationMonths ?? "lifetime")}
+                  onValueChange={(v) => setEditCourseFormData({ ...editCourseFormData, accessDurationMonths: v === "lifetime" ? null : parseInt(v) })}
+                >
+                  <SelectTrigger id="editCourseAccess">
+                    <SelectValue placeholder="Хугацаа" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lifetime">♾ Насан туршид</SelectItem>
+                    <SelectItem value="1">1 сар</SelectItem>
+                    <SelectItem value="3">3 сар</SelectItem>
+                    <SelectItem value="6">6 сар</SelectItem>
+                    <SelectItem value="12">1 жил</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="editCourseLevel">Level</Label>
                 <Select value={editCourseFormData.level} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setEditCourseFormData({ ...editCourseFormData, level: value })}>

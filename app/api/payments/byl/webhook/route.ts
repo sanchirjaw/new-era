@@ -44,11 +44,19 @@ export async function POST(request: NextRequest) {
       })
 
       if (payment) {
+        const client2 = await (await import("@/lib/mongodb")).default
+        const db_conn2 = client2.db("new-era-platform")
+        const course = await db_conn2.collection("courses").findOne({ _id: payment.courseId })
+        const enrolledAt = new Date()
+        const expiresAt = course?.accessDurationMonths
+          ? new Date(enrolledAt.getTime() + course.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+          : null
+
         // Update payment status
         await db.updatePaymentStatus(
-          new ObjectId(payment._id), 
-          "completed", 
-          invoice.id.toString(), 
+          new ObjectId(payment._id),
+          "completed",
+          invoice.id.toString(),
           "byl"
         )
 
@@ -57,32 +65,39 @@ export async function POST(request: NextRequest) {
           userId: payment.userId,
           courseId: payment.courseId,
           paymentId: new ObjectId(payment._id),
-          enrolledAt: new Date(),
+          enrolledAt,
+          expiresAt,
           completedLessons: [],
           progress: 0,
           isActive: true,
         })
-        
+
         // Update user's enrolledCourses array
         await db.addCourseToUser(payment.userId, payment.courseId)
       }
     } else if (type === "checkout.completed") {
       const checkout = data.object
-      
+
       // Find payment by Byl checkout ID
       const client = await (await import("@/lib/mongodb")).default
       const db_conn = client.db("new-era-platform")
-      const payment = await db_conn.collection("payments").findOne({ 
+      const payment = await db_conn.collection("payments").findOne({
         bylCheckoutId: checkout.id,
         status: "pending"
       })
 
       if (payment) {
+        const course = await db_conn.collection("courses").findOne({ _id: payment.courseId })
+        const enrolledAt = new Date()
+        const expiresAt = course?.accessDurationMonths
+          ? new Date(enrolledAt.getTime() + course.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+          : null
+
         // Update payment status
         await db.updatePaymentStatus(
-          new ObjectId(payment._id), 
-          "completed", 
-          checkout.id.toString(), 
+          new ObjectId(payment._id),
+          "completed",
+          checkout.id.toString(),
           "byl"
         )
 
@@ -91,12 +106,13 @@ export async function POST(request: NextRequest) {
           userId: payment.userId,
           courseId: payment.courseId,
           paymentId: new ObjectId(payment._id),
-          enrolledAt: new Date(),
+          enrolledAt,
+          expiresAt,
           completedLessons: [],
           progress: 0,
           isActive: true,
         })
-        
+
         // Update user's enrolledCourses array
         await db.addCourseToUser(payment.userId, payment.courseId)
       }

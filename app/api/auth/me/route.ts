@@ -37,19 +37,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Auto-deactivate expired enrollments
+    await db.deactivateExpiredEnrollments(new ObjectId(user.id))
+
+    // Re-fetch user after potential expiry cleanup
+    const freshUser = await db.getUserById(new ObjectId(user.id))
+    const finalUser = freshUser || userData
+
+    // Build enrollment expiry map: { courseId -> expiresAt | null }
+    const enrollments = await db.getUserEnrollments(new ObjectId(user.id))
+    const enrollmentExpiries: Record<string, string | null> = {}
+    for (const e of enrollments) {
+      const cid = e.courseId?.toString()
+      if (cid) {
+        enrollmentExpiries[cid] = e.expiresAt ? e.expiresAt.toISOString() : null
+      }
+    }
+
     // Return user data with additional fields
     return NextResponse.json({
       user: {
-        id: userData._id?.toString(),
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        enrolledCourses: userData.enrolledCourses?.map(id => id.toString()) || [],
-        phone: userData.phone,
-        address: userData.address,
-        bio: userData.bio,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt
+        id: finalUser._id?.toString(),
+        email: finalUser.email,
+        name: finalUser.name,
+        role: finalUser.role,
+        enrolledCourses: finalUser.enrolledCourses?.map((id: any) => id.toString()) || [],
+        enrollmentExpiries,   // { courseId: "2026-01-01T..." | null }
+        phone: finalUser.phone,
+        address: finalUser.address,
+        bio: finalUser.bio,
+        createdAt: finalUser.createdAt,
+        updatedAt: finalUser.updatedAt
       }
     })
   } catch (error) {
