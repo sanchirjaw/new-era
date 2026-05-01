@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { BookOpen, Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, Video, Link } from "lucide-react"
+import { BookOpen, Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, Video, Link, Upload, CheckCircle2, AlertCircle, FileVideo, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 
@@ -99,6 +99,12 @@ export default function AdminCourses() {
   const [isCreatingLesson, setIsCreatingLesson] = useState(false)
   const [isUploadingInBackground, setIsUploadingInBackground] = useState(false)
   const [thumbnailUploadLoading, setThumbnailUploadLoading] = useState(false)
+
+  type UploadStatus = 'idle' | 'initializing' | 'uploading' | 'creating' | 'done' | 'error'
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadStatusMsg, setUploadStatusMsg] = useState('')
+  const [uploadError, setUploadError] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   
 
@@ -451,91 +457,61 @@ export default function AdminCourses() {
     }
   }
 
+  const uploadFileWithProgress = (
+    url: string,
+    headers: Record<string, string>,
+    file: File,
+    onProgress: (pct: number) => void
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      })
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve()
+        else reject(new Error(`Bunny.net upload failed: ${xhr.status} ${xhr.responseText.substring(0, 200)}`))
+      })
+      xhr.addEventListener('error', () => reject(new Error('Сүлжээний алдаа. Дахин оролдоно уу.')))
+      xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
+      xhr.open('PUT', url)
+      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v))
+      xhr.send(file)
+    })
+  }
+
   const handleCreateLesson = async () => {
     if (!selectedSubCourse || !lessonFormData.videoFile) {
       toast({
-        title: "Missing required data",
-        description: "Please select a subcourse and upload a video file.",
+        title: "Мэдээлэл дутуу байна",
+        description: "Дэд хичээл сонгож, видео файл оруулна уу.",
         variant: "destructive",
       })
       return
     }
-
-    if (isCreatingLesson) {
-      return // Prevent multiple submissions
-    }
+    if (isCreatingLesson) return
 
     setIsCreatingLesson(true)
+    setUploadStatus('initializing')
+    setUploadProgress(0)
+    setUploadError('')
+    setUploadStatusMsg('Bunny.net рүү холбогдож байна...')
 
-    try {
-      // Show initial loading state
-      toast({
-        title: "Starting lesson creation...",
-        description: "Video will be uploaded in the background.",
-      })
+    const videoFile = lessonFormData.videoFile
+    const fileSize = videoFile.size
+    const fileName = videoFile.name
+    const contentType = videoFile.type
+    const existingLessons = lessons.filter(l => l.subCourseId === selectedSubCourse._id)
+    const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
+    const formDataToSave = { ...lessonFormData, order: nextOrder }
+    const subCourseIdToSave = selectedSubCourse._id
 
-      // Close the form immediately to keep UI responsive
-      setIsCreateLessonDialogOpen(false)
-      
-      // Calculate the next order number for this subcourse
-      const existingLessons = lessons.filter(l => l.subCourseId === selectedSubCourse._id)
-      const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
-      
-      // Reset form data
-      const formDataToSave = { ...lessonFormData, order: nextOrder }
-      const subCourseIdToSave = selectedSubCourse._id
-      
-      // Small delay to prevent accidental double-clicks
-      setTimeout(() => {
-        setLessonFormData({
-          title: '',
-          description: '',
-          order: 1,
-          isPreview: false,
-          videoFile: null
-        })
-        setSelectedSubCourse(null)
-      }, 100)
-
-      // Start background upload process
-      handleBackgroundUpload(formDataToSave, subCourseIdToSave)
-      
-    } catch (error) {
-      console.error("Failed to start lesson creation:", error)
-      toast({
-        title: "Error",
-        description: "Failed to start lesson creation. Please try again.",
-        variant: "destructive",
-      })
-      setIsCreatingLesson(false)
-    }
-  }
-
-  const handleBackgroundUpload = async (formData: any, subCourseId: string) => {
     setIsUploadingInBackground(true)
+
     try {
-      // Show upload progress
-      toast({
-        title: "Uploading video...",
-        description: "Please wait while we upload your video file.",
-      })
-
-      // First, initialize TUS upload to Bunny.net
-      const videoFile = formData.videoFile
-      const fileSize = videoFile.size
-      const fileName = videoFile.name
-      const contentType = videoFile.type
-
-      console.log('🚀 Starting TUS upload for:', fileName)
-      console.log('📊 File size:', (fileSize / (1024 * 1024)).toFixed(2), 'MB')
-      console.log('📋 File details:', {
-        name: fileName,
-        size: fileSize,
-        type: contentType,
-        lastModified: videoFile.lastModified
-      })
-
-      // Initialize TUS upload
+      // Step 1: Initialize upload on Bunny.net
       const tusInitResponse = await fetch('/api/admin/upload/tus', {
         method: 'POST',
         credentials: 'include',
@@ -545,147 +521,88 @@ export default function AdminCourses() {
           'Upload-Metadata': `filename ${encodeURIComponent(fileName)},contentType ${encodeURIComponent(contentType)}`,
           'Tus-Resumable': '1.0.0'
         },
-        body: JSON.stringify({
-          filename: fileName,
-          fileSize: fileSize,
-          contentType: contentType
-        })
+        body: JSON.stringify({ filename: fileName, fileSize, contentType })
       })
 
       if (!tusInitResponse.ok) {
         const errorData = await tusInitResponse.json()
-        throw new Error(`Failed to initialize TUS upload: ${errorData.error || tusInitResponse.statusText}`)
+        throw new Error(errorData.error || 'Холболт амжилтгүй боллоо')
       }
 
       const tusInitResult = await tusInitResponse.json()
-
       if (!tusInitResult.success || !tusInitResult.uploadUrl || !tusInitResult.videoId) {
-        throw new Error('TUS upload initialization failed')
+        throw new Error('Upload URL авч чадсангүй')
       }
 
-      console.log('✅ TUS upload initialized:', tusInitResult.uploadId)
-      console.log('🔗 Upload URL:', tusInitResult.uploadUrl)
-      console.log('📋 Upload headers:', tusInitResult.uploadHeaders)
+      // Step 2: Upload file with progress tracking
+      setUploadStatus('uploading')
+      setUploadProgress(0)
+      setUploadStatusMsg(`Видео байршуулж байна...`)
 
-      // Now upload the file directly to Bunny.net using the upload URL
-      console.log('🚀 Starting direct upload to Bunny.net...')
-      
-      try {
-        // Upload the entire file directly to Bunny.net
-        const uploadResponse = await fetch(tusInitResult.uploadUrl, {
-          method: 'PUT',
-          headers: {
-            ...tusInitResult.uploadHeaders, // Use the headers from TUS initialization
-            'Content-Type': contentType
-          },
-          body: videoFile
-        })
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text()
-          console.error('❌ Direct upload to Bunny.net failed:', uploadResponse.status, errorText)
-          throw new Error(`Failed to upload to Bunny.net: ${uploadResponse.status} ${errorText}`)
+      await uploadFileWithProgress(
+        tusInitResult.uploadUrl,
+        { ...tusInitResult.uploadHeaders, 'Content-Type': contentType },
+        videoFile,
+        (pct) => {
+          setUploadProgress(pct)
+          setUploadStatusMsg(`Видео байршуулж байна... ${pct}%`)
         }
+      )
 
-        console.log('🎉 File uploaded successfully to Bunny.net!')
-        toast({
-          title: "Video uploaded successfully!",
-          description: "Now creating lesson in database...",
-        })
+      // Step 3: Create lesson in DB
+      setUploadStatus('creating')
+      setUploadProgress(100)
+      setUploadStatusMsg('Хичээл үүсгэж байна...')
 
-      } catch (uploadError) {
-        console.error('❌ Direct upload failed, trying chunked approach:', uploadError)
-        
-        // Fallback to chunked upload if direct upload fails
-        console.log('🔄 Falling back to chunked upload...')
-        
-        const chunkSize = 1 * 1024 * 1024 // 1MB chunks (very small to avoid Vercel limits)
-        const totalChunks = Math.ceil(fileSize / chunkSize)
-        let uploadedBytes = 0
-
-        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-          const start = chunkIndex * chunkSize
-          const end = Math.min(start + chunkSize, fileSize)
-          const chunk = videoFile.slice(start, end)
-          
-          console.log(`📤 Uploading chunk ${chunkIndex + 1}/${totalChunks}: ${(chunk.size / (1024 * 1024)).toFixed(2)} MB`)
-
-          // Upload chunk directly to Bunny.net
-          const chunkResponse = await fetch(tusInitResult.uploadUrl, {
-            method: 'PUT',
-            headers: {
-              ...tusInitResult.uploadHeaders, // Use the headers from TUS initialization
-              'Content-Type': 'application/octet-stream',
-              'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`
-            },
-            body: chunk
-          })
-
-          if (!chunkResponse.ok) {
-            const errorText = await chunkResponse.text()
-            throw new Error(`Failed to upload chunk ${chunkIndex + 1}: ${chunkResponse.status} ${errorText}`)
-          }
-
-          uploadedBytes += chunk.size
-
-          // Update progress
-          const progress = ((chunkIndex + 1) / totalChunks * 100).toFixed(1)
-          toast({
-            title: "Uploading video...",
-            description: `Progress: ${progress}% (${chunkIndex + 1}/${totalChunks} chunks)`,
-          })
-
-          console.log(`✅ Chunk ${chunkIndex + 1} uploaded. Progress: ${progress}%`)
-        }
-
-        console.log('🎉 All chunks uploaded successfully!')
-        toast({
-          title: "Video uploaded successfully!",
-          description: "Now creating lesson in database...",
-        })
-      }
-
-      // Create lesson with video upload info
       const response = await fetch('/api/admin/lessons', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title || 'Untitled Lesson',
-          description: formData.description || '',
-          subCourseId: subCourseId,
-          order: formData.order || 1,
-          isPreview: formData.isPreview || false,
+          title: formDataToSave.title || 'Untitled Lesson',
+          description: formDataToSave.description || '',
+          subCourseId: subCourseIdToSave,
+          order: formDataToSave.order || 1,
+          isPreview: formDataToSave.isPreview || false,
           bunnyVideoId: tusInitResult.videoId,
-          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}` // Generate video URL
+          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}`
         })
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to create lesson')
+        throw new Error(error.error || 'Хичээл үүсгэж чадсангүй')
       }
 
-      const result = await response.json()
-      
-      toast({
-        title: "Lesson Created Successfully! 🎉",
-        description: "Your lesson has been created and is now available.",
-      })
+      // Step 4: Done
+      setUploadStatus('done')
+      setUploadStatusMsg('Амжилттай нэмэгдлээ!')
 
-      // Refresh lessons for the current subcourse if any
-      if (subCourseId) {
-        fetchLessons(subCourseId)
+      if (subCourseIdToSave) {
+        const lessonsData = await fetchLessons(subCourseIdToSave)
+        setLessons(prev => {
+          const filtered = prev.filter(l => l.subCourseId !== subCourseIdToSave)
+          return [...filtered, ...lessonsData]
+        })
       }
-      
+
+      setTimeout(() => {
+        setIsCreateLessonDialogOpen(false)
+        setUploadStatus('idle')
+        setUploadProgress(0)
+        setUploadStatusMsg('')
+        setLessonFormData({ title: '', description: '', order: 1, isPreview: false, videoFile: null })
+        setSelectedSubCourse(null)
+        setIsCreatingLesson(false)
+        setIsUploadingInBackground(false)
+      }, 1800)
+
     } catch (error) {
-      console.error("Background upload failed:", error)
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to create lesson. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
+      console.error('Upload failed:', error)
+      const msg = error instanceof Error ? error.message : 'Алдаа гарлаа. Дахин оролдоно уу.'
+      setUploadStatus('error')
+      setUploadError(msg)
+      setUploadStatusMsg('')
       setIsCreatingLesson(false)
       setIsUploadingInBackground(false)
     }
@@ -742,14 +659,44 @@ export default function AdminCourses() {
         <p className="text-gray-600">Хичээлүүдийг нэмэх, засах, устгах</p>
       </div>
 
-      {/* Background Upload Status */}
-      {isUploadingInBackground && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      {/* Upload Status Banner */}
+      {isUploadingInBackground && uploadStatus !== 'idle' && (
+        <div className={`p-4 rounded-xl border ${
+          uploadStatus === 'done' ? 'bg-green-50 border-green-200' :
+          uploadStatus === 'error' ? 'bg-red-50 border-red-200' :
+          'bg-blue-50 border-blue-200'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <div>
-              <p className="text-blue-800 font-medium">Video upload in progress...</p>
-              <p className="text-blue-600 text-sm">Lesson creation is happening in the background</p>
+            {uploadStatus === 'done' ? (
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            ) : uploadStatus === 'error' ? (
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            ) : (
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={`font-medium text-sm ${
+                uploadStatus === 'done' ? 'text-green-800' :
+                uploadStatus === 'error' ? 'text-red-700' : 'text-blue-800'
+              }`}>
+                {uploadStatus === 'done' ? 'Хичээл амжилттай нэмэгдлээ!' :
+                 uploadStatus === 'error' ? 'Байршуулалт амжилтгүй боллоо' :
+                 uploadStatusMsg}
+              </p>
+              {uploadStatus === 'uploading' && (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-blue-600 mb-1">
+                    <span>Байршуулж байна</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-blue-100 rounded-full h-1.5">
+                    <div
+                      className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1509,82 +1456,211 @@ export default function AdminCourses() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isCreateLessonDialogOpen} onOpenChange={setIsCreateLessonDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog
+        open={isCreateLessonDialogOpen}
+        onOpenChange={(open) => {
+          if (!isCreatingLesson) {
+            setIsCreateLessonDialogOpen(open)
+            if (!open) {
+              setUploadStatus('idle')
+              setUploadProgress(0)
+              setUploadError('')
+              setUploadStatusMsg('')
+            }
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create New Lesson</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Video className="w-5 h-5 text-blue-600" />
+              Шинэ хичээл нэмэх
+            </DialogTitle>
+            {selectedSubCourse && (
+              <p className="text-sm text-muted-foreground">
+                Дэд хичээл: <span className="font-medium text-foreground">{selectedSubCourse.title}</span>
+              </p>
+            )}
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+
+          {/* Upload progress view */}
+          {uploadStatus !== 'idle' && uploadStatus !== 'error' ? (
+            <div className="py-6 space-y-6">
+              {/* Steps */}
+              <div className="space-y-3">
+                {[
+                  { key: 'initializing', label: 'Холболт үүсгэж байна', desc: 'Bunny.net рүү холбогдож байна' },
+                  { key: 'uploading',    label: 'Видео байршуулж байна', desc: lessonFormData.videoFile ? `${lessonFormData.videoFile.name} · ${(lessonFormData.videoFile.size / 1024 / 1024).toFixed(1)} MB` : '' },
+                  { key: 'creating',     label: 'Хичээл хадгалж байна',  desc: 'Мэдээллийн санд нэмж байна' },
+                  { key: 'done',         label: 'Амжилттай!',            desc: 'Хичээл нэмэгдлээ' },
+                ].map((step, i) => {
+                  const statuses = ['initializing', 'uploading', 'creating', 'done']
+                  const currentIdx = statuses.indexOf(uploadStatus)
+                  const stepIdx = statuses.indexOf(step.key)
+                  const isDone = stepIdx < currentIdx || uploadStatus === 'done'
+                  const isActive = step.key === uploadStatus
+                  return (
+                    <div key={step.key} className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                      isActive ? 'bg-blue-50 border border-blue-200' :
+                      isDone  ? 'bg-green-50 border border-green-100 opacity-70' :
+                      'opacity-30'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        isActive ? 'bg-blue-600' : isDone ? 'bg-green-500' : 'bg-gray-200'
+                      }`}>
+                        {isDone ? (
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        ) : isActive ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <span className="text-xs font-bold text-gray-500">{i + 1}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold ${isActive ? 'text-blue-800' : isDone ? 'text-green-800' : 'text-gray-400'}`}>
+                          {step.label}
+                        </p>
+                        <p className={`text-xs truncate ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}>
+                          {step.desc}
+                        </p>
+                      </div>
+                      {isActive && step.key === 'uploading' && (
+                        <span className="text-sm font-bold text-blue-700 tabular-nums">{uploadProgress}%</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Progress bar — only during upload */}
+              {uploadStatus === 'uploading' && (
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>Байршуулсан</span>
+                    <span>
+                      {lessonFormData.videoFile
+                        ? `${((lessonFormData.videoFile.size * uploadProgress) / 100 / 1024 / 1024).toFixed(1)} MB / ${(lessonFormData.videoFile.size / 1024 / 1024).toFixed(1)} MB`
+                        : `${uploadProgress}%`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-200"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {uploadStatus === 'done' && (
+                <div className="flex items-center justify-center gap-2 text-green-600 font-semibold py-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Хичээл амжилттай нэмэгдлээ!
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Normal form */
+            <div className="space-y-4 pt-1">
+              {uploadStatus === 'error' && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-700">Байршуулалт амжилтгүй боллоо</p>
+                    <p className="text-xs text-red-600 mt-0.5">{uploadError}</p>
+                  </div>
+                </div>
+              )}
+
               <div>
-                <Label htmlFor="lessonTitle">Title</Label>
+                <Label htmlFor="lessonTitle">Гарчиг <span className="text-red-500">*</span></Label>
                 <Input
                   id="lessonTitle"
                   value={lessonFormData.title}
                   onChange={(e) => setLessonFormData({ ...lessonFormData, title: e.target.value })}
-                  placeholder="Enter lesson title"
+                  placeholder="Хичээлийн гарчиг"
+                  className="mt-1"
                 />
               </div>
+
               <div>
-                <Label htmlFor="lessonOrder">Order</Label>
-                <Input
-                  id="lessonOrder"
-                  type="number"
-                  value={lessonFormData.order}
-                  onChange={(e) => setLessonFormData({ ...lessonFormData, order: parseInt(e.target.value) || 1 })}
-                  placeholder="Enter order"
+                <Label htmlFor="lessonDescription">Тайлбар</Label>
+                <Textarea
+                  id="lessonDescription"
+                  value={lessonFormData.description}
+                  onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
+                  placeholder="Хичээлийн товч тайлбар (заавал биш)"
+                  rows={2}
+                  className="mt-1"
                 />
               </div>
+
+              {/* Video file drop zone */}
+              <div>
+                <Label>Видео файл <span className="text-red-500">*</span></Label>
+                {lessonFormData.videoFile ? (
+                  <div className="mt-1 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+                      <FileVideo className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-blue-900 truncate">{lessonFormData.videoFile.name}</p>
+                      <p className="text-xs text-blue-600">{(lessonFormData.videoFile.size / 1024 / 1024).toFixed(2)} MB · {lessonFormData.videoFile.type || 'video'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLessonFormData({ ...lessonFormData, videoFile: null })}
+                      className="p-1 rounded-full hover:bg-blue-100 text-blue-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="lessonVideo"
+                    className="mt-1 flex flex-col items-center gap-2 p-6 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                  >
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground">Файл сонгох</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">MP4, MOV, AVI, WebM · Хэмжээний хязгааргүй</p>
+                    </div>
+                    <input
+                      id="lessonVideo"
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setLessonFormData({ ...lessonFormData, videoFile: file })
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Үнэгүй үзэх</p>
+                  <p className="text-xs text-muted-foreground">Бүртгэлгүй хэрэглэгч үзэж болно</p>
+                </div>
+                <Switch
+                  id="lessonPreview"
+                  checked={lessonFormData.isPreview}
+                  onCheckedChange={(checked) => setLessonFormData({ ...lessonFormData, isPreview: checked })}
+                />
+              </div>
+
+              <Button
+                onClick={handleCreateLesson}
+                className="w-full h-11 text-base font-semibold"
+                disabled={isCreatingLesson || !lessonFormData.videoFile || !lessonFormData.title}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Байршуулах
+              </Button>
             </div>
-            <div>
-              <Label htmlFor="lessonDescription">Description</Label>
-              <Textarea
-                id="lessonDescription"
-                value={lessonFormData.description}
-                onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
-                placeholder="Enter lesson description"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="lessonVideo">Video File</Label>
-              <Input
-                id="lessonVideo"
-                type="file"
-                accept="video/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null
-                  if (file) {
-                    toast({
-                      title: "File selected",
-                      description: `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
-                    })
-                  }
-                  setLessonFormData({ ...lessonFormData, videoFile: file })
-                }}
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Supported formats: MP4, AVI, MOV, WMV, FLV, WebM. No file size restrictions.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="lessonPreview"
-                checked={lessonFormData.isPreview}
-                onCheckedChange={(checked) => setLessonFormData({ ...lessonFormData, isPreview: checked })}
-              />
-              <Label htmlFor="lessonPreview">Preview Lesson</Label>
-            </div>
-            <Button
-              onClick={handleCreateLesson}
-              className="w-full"
-              disabled={isCreatingLesson}
-            >
-              {isCreatingLesson ? "Starting Upload..." : "Create Lesson"}
-            </Button>
-            
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
