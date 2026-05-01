@@ -41,6 +41,7 @@ export function CourseCard({
   rating,
   studentsCount,
   priceMnt,
+  accessDurationMonths,
   isEnrolled = false,
   expiresAt,
   progressPct,
@@ -122,7 +123,7 @@ export function CourseCard({
               </Badge>
             ) : (
               priceMnt !== undefined && (
-                <PriceBadge price={priceMnt} />
+                <PriceBadge price={priceMnt} durationMonths={accessDurationMonths} />
               )
             )}
           </div>
