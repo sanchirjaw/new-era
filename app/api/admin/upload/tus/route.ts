@@ -155,19 +155,6 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ File type validation passed')
 
-    // Test Bunny.net connection
-    console.log('🔗 Testing Bunny.net connection...')
-    const connectionTest = await bunnyVideoService.testConnection()
-    
-    if (!connectionTest) {
-      console.log('❌ Bunny.net connection test failed')
-      return NextResponse.json({ 
-        error: "Bunny.net service unavailable. Please check your configuration." 
-      }, { status: 503 })
-    }
-
-    console.log('✅ Bunny.net connection test successful')
-
     // Create video entry in Bunny.net
     console.log('🚀 Creating video entry in Bunny.net...')
     const videoEntry = await bunnyVideoService.getDirectUploadUrl({

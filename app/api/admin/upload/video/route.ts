@@ -68,17 +68,6 @@ export async function POST(request: NextRequest) {
       console.log(`📊 File size: ${fileSizeMB} MB (${fileSize} bytes)`)
       console.log(`📋 File type: ${fileContentType}`)
 
-      // Test Bunny.net connection first
-      console.log('🔗 Testing Bunny.net connection...')
-      const connectionTest = await bunnyVideoService.testConnection()
-      
-      if (!connectionTest) {
-        console.log('❌ Bunny.net connection test failed')
-        return NextResponse.json({ 
-          error: "Bunny.net service unavailable. Please check your configuration." 
-        }, { status: 503 })
-      }
-
       console.log('🚀 Generating direct upload URL for Bunny.net...')
 
       // Generate direct upload URL
