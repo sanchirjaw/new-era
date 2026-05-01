@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth-server"
 import { bunnyVideoService } from "@/lib/bunny-video"
+import { auth } from "@/auth"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -9,18 +10,30 @@ export const maxDuration = 60
 export async function POST(request: NextRequest) {
   try {
     console.log('🎥 TUS upload initialization request received')
-    
-    // Verify admin authentication
+
+    // Support both admin-token cookie AND NextAuth session
+    let isAdmin = false
+
     const token = request.cookies.get("admin-token")?.value
-    if (!token) {
-      console.log('❌ No admin token found')
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (token) {
+      const user = verifyToken(token)
+      if (user && user.role === "admin") isAdmin = true
     }
 
-    const user = verifyToken(token)
-    if (!user || user.role !== "admin") {
-      console.log('❌ Invalid admin token or user role')
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!isAdmin) {
+      try {
+        const session = await auth()
+        if (session?.user?.email) {
+          const { db } = await import("@/lib/database")
+          const dbUser = await db.getUserByEmail(session.user.email)
+          if (dbUser?.role === "admin") isAdmin = true
+        }
+      } catch {}
+    }
+
+    if (!isAdmin) {
+      console.log('❌ Unauthorized - no valid admin session')
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     console.log('✅ Admin authentication successful')
