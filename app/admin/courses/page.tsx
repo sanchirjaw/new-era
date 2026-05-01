@@ -657,7 +657,7 @@ export default function AdminCourses() {
           order: formData.order || 1,
           isPreview: formData.isPreview || false,
           bunnyVideoId: tusInitResult.videoId,
-          videoUrl: `https://iframe.mediadelivery.net/embed/487497/${tusInitResult.videoId}` // Generate video URL
+          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}` // Generate video URL
         })
       })
 
