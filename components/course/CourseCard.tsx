@@ -56,7 +56,6 @@ export function CourseCard({
 }: CourseCardProps) {
   const isFree = priceMnt === 0
   const hasDiscount = typeof originalPriceMnt === 'number' && typeof priceMnt === 'number' && originalPriceMnt > priceMnt
-  const discountPct = hasDiscount ? Math.round((1 - priceMnt! / originalPriceMnt!) * 100) : 0
 
   // Expiry helpers
   const hasExpiry = isEnrolled && expiresAt

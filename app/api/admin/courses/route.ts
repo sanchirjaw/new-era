@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const { title, description, price, originalPrice, category, level, isActive, thumbnailUrl } = await request.json()
+    const { title, description, price, originalPrice, accessDurationMonths, category, level, isActive, thumbnailUrl } = await request.json()
 
     // Validate input
     if (!title || !description || !category || !level) {
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       description,
       price: price || 0,
       originalPrice: originalPrice || 0,
+      accessDurationMonths: accessDurationMonths ?? null,
       category,
       level,
       duration: 0, // Will be calculated from lessons
