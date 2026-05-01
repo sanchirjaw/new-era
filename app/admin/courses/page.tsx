@@ -1329,54 +1329,55 @@ export default function AdminCourses() {
 
       {/* Edit Lesson Dialog */}
       <Dialog open={isEditLessonDialogOpen} onOpenChange={setIsEditLessonDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Lesson</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-4 h-4 text-blue-600" />
+              Хичээл засах
+            </DialogTitle>
+            {selectedLesson && (
+              <p className="text-xs text-muted-foreground truncate">ID: {selectedLesson._id}</p>
+            )}
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editLessonTitle">Title</Label>
-                <Input
-                  id="editLessonTitle"
-                  value={editLessonFormData.title}
-                  onChange={(e) => setEditLessonFormData({ ...editLessonFormData, title: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="editLessonOrder">Order</Label>
-                <Input
-                  id="editLessonOrder"
-                  type="number"
-                  value={editLessonFormData.order}
-                  onChange={(e) => setEditLessonFormData({ ...editLessonFormData, order: parseInt(e.target.value) || 1 })}
-                />
-              </div>
+          <div className="space-y-4 pt-1">
+            <div>
+              <Label htmlFor="editLessonTitle">Гарчиг</Label>
+              <Input
+                id="editLessonTitle"
+                value={editLessonFormData.title}
+                onChange={(e) => setEditLessonFormData({ ...editLessonFormData, title: e.target.value })}
+                className="mt-1"
+              />
             </div>
             <div>
-              <Label htmlFor="editLessonDescription">Description</Label>
+              <Label htmlFor="editLessonDescription">Тайлбар</Label>
               <Textarea
                 id="editLessonDescription"
                 value={editLessonFormData.description}
                 onChange={(e) => setEditLessonFormData({ ...editLessonFormData, description: e.target.value })}
-                rows={3}
+                rows={2}
+                className="mt-1"
               />
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+              <div>
+                <p className="text-sm font-medium">Үнэгүй үзэх</p>
+                <p className="text-xs text-muted-foreground">Бүртгэлгүй хэрэглэгч үзэж болно</p>
+              </div>
               <Switch
                 id="editLessonPreview"
                 checked={editLessonFormData.isPreview}
                 onCheckedChange={(checked) => setEditLessonFormData({ ...editLessonFormData, isPreview: checked })}
               />
-              <Label htmlFor="editLessonPreview">Preview Lesson</Label>
             </div>
             <Button
+              className="w-full h-11"
               onClick={async () => {
                 if (!selectedLesson) return
                 try {
-                        const res = await fetch(`/api/admin/lessons/${selectedLesson._id}`, {
-        method: "PUT",
-        credentials: 'include',
+                  const res = await fetch(`/api/admin/lessons/${selectedLesson._id}`, {
+                    method: "PUT",
+                    credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editLessonFormData)
       })
@@ -1400,9 +1401,8 @@ export default function AdminCourses() {
                   toast({ title: "Error", description: "Failed to update lesson", variant: "destructive" })
                 }
               }}
-              className="w-full"
             >
-              Save
+              Хадгалах
             </Button>
           </div>
         </DialogContent>

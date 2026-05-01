@@ -2,6 +2,35 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { db } from "./database"
 import type { AuthUser } from "./types"
+import type { NextRequest } from "next/server"
+
+/**
+ * Checks both admin-token cookie AND NextAuth session.
+ * Returns an admin user object or null.
+ * Always checks both — no if/else skipping.
+ */
+export async function getAdminUser(request: NextRequest): Promise<AuthUser | null> {
+  // 1. Try admin-token cookie first (fast path)
+  const token = request.cookies.get("admin-token")?.value
+  if (token) {
+    const tokenUser = verifyToken(token)
+    if (tokenUser && tokenUser.role === "admin") return tokenUser
+  }
+
+  // 2. Try NextAuth session
+  try {
+    const { auth } = await import("@/auth")
+    const session = await auth()
+    if (session?.user?.email) {
+      const dbUser = await db.getUserByEmail(session.user.email)
+      if (dbUser && dbUser.role === "admin") {
+        return { id: dbUser._id!.toString(), email: dbUser.email, name: dbUser.name, role: "admin" }
+      }
+    }
+  } catch {}
+
+  return null
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
