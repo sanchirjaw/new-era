@@ -26,18 +26,17 @@ export class BunnyVideoService {
   private baseUrl: string
 
   constructor() {
-    // Use the working API key (stream library API key has video management permissions)
-    this.apiKey = process.env.BUNNY_STREAM_LIBRARY_API_KEY || process.env.BUNNY_API_KEY || ''
-    this.libraryId = process.env.BUNNY_VIDEO_LIBRARY_ID || process.env.BUNNY_STREAM_LIBRARY_ID || ''
+    this.apiKey = ''
+    this.libraryId = ''
     this.baseUrl = 'https://video.bunnycdn.com'
-    
-    if (!this.apiKey || !this.libraryId) {
-      console.warn('Bunny.net credentials not configured. Check BUNNY_STREAM_LIBRARY_API_KEY and BUNNY_VIDEO_LIBRARY_ID environment variables.')
-    } else {
-      console.log('Bunny.net video service initialized successfully')
-      console.log(`  API Key: ${this.apiKey.substring(0, 8)}...`)
-      console.log(`  Library ID: ${this.libraryId}`)
-    }
+  }
+
+  private getCredentials() {
+    // Read env vars at request time (not at module load time)
+    const apiKey = process.env.BUNNY_STREAM_LIBRARY_API_KEY || process.env.BUNNY_API_KEY || ''
+    const libraryId = process.env.BUNNY_VIDEO_LIBRARY_ID || process.env.BUNNY_STREAM_LIBRARY_ID || ''
+    console.log(`Bunny credentials - API Key: ${apiKey.substring(0, 8)}... Library: ${libraryId}`)
+    return { apiKey, libraryId }
   }
 
   /**
@@ -50,12 +49,12 @@ export class BunnyVideoService {
     contentType: string
   }): Promise<DirectUploadResponse> {
     try {
-      if (!this.apiKey || !this.libraryId) {
-        return {
-          success: false,
-          error: 'Bunny.net credentials not configured'
-        }
+      const { apiKey, libraryId } = this.getCredentials()
+      if (!apiKey || !libraryId) {
+        return { success: false, error: 'Bunny.net credentials not configured' }
       }
+      this.apiKey = apiKey
+      this.libraryId = libraryId
 
       console.log('🚀 Generating direct upload URL for:', filename)
       console.log('📊 File size:', (fileSize / (1024 * 1024)).toFixed(2), 'MB')
@@ -113,12 +112,12 @@ export class BunnyVideoService {
 
   async uploadVideo(file: File, metadata: BunnyVideoMetadata): Promise<BunnyVideoUploadResponse> {
     try {
-      if (!this.apiKey || !this.libraryId) {
-        return {
-          success: false,
-          error: 'Bunny.net credentials not configured'
-        }
+      const { apiKey, libraryId } = this.getCredentials()
+      if (!apiKey || !libraryId) {
+        return { success: false, error: 'Bunny.net credentials not configured' }
       }
+      this.apiKey = apiKey
+      this.libraryId = libraryId
 
       console.log('Starting video upload to Bunny.net...')
       console.log('Using API key:', this.apiKey.substring(0, 8) + '...')
@@ -193,6 +192,8 @@ export class BunnyVideoService {
 
   async getVideoInfo(videoId: string): Promise<any> {
     try {
+      const { apiKey, libraryId } = this.getCredentials()
+      this.apiKey = apiKey; this.libraryId = libraryId
       const response = await fetch(`${this.baseUrl}/library/${this.libraryId}/videos/${videoId}`, {
         headers: {
           'AccessKey': this.apiKey
@@ -212,6 +213,8 @@ export class BunnyVideoService {
 
   async deleteVideo(videoId: string): Promise<boolean> {
     try {
+      const { apiKey, libraryId } = this.getCredentials()
+      this.apiKey = apiKey; this.libraryId = libraryId
       const response = await fetch(`${this.baseUrl}/library/${this.libraryId}/videos/${videoId}`, {
         method: 'DELETE',
         headers: {
