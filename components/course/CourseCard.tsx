@@ -125,13 +125,9 @@ export function CourseCard({
                 Элссэн
               </Badge>
             ) : (
-              hasDiscount ? (
-                <div className="inline-flex items-center gap-1 rounded-md bg-red-600/90 px-2 py-1 text-xs font-bold text-white backdrop-blur-sm">
-                  -{discountPct}%
-                </div>
-              ) : priceMnt !== undefined ? (
+              priceMnt !== undefined && (
                 <PriceBadge price={priceMnt} />
-              ) : null
+              )
             )}
           </div>
 
@@ -210,24 +206,13 @@ export function CourseCard({
 
           {/* Price row for non-enrolled courses */}
           {!isEnrolled && priceMnt !== undefined && (
-            <div className="mt-1 flex items-center gap-2 flex-wrap">
-              <span className="text-lg font-black text-orange-500">
-                ₮{formatPrice(priceMnt)}
-              </span>
+            <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-lg font-black text-orange-500">₮{formatPrice(priceMnt)}</span>
               {hasDiscount && (
-                <>
-                  <span className="text-sm text-muted-foreground line-through">
-                    ₮{formatPrice(originalPriceMnt)}
-                  </span>
-                  <span className="inline-flex items-center rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
-                    -{discountPct}%
-                  </span>
-                </>
+                <span className="text-sm text-muted-foreground line-through">₮{formatPrice(originalPriceMnt)}</span>
               )}
               {accessDurationMonths ? (
-                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
-                  ({accessDurationMonths} сар)
-                </span>
+                <span className="text-sm text-muted-foreground">/ ({accessDurationMonths} сар)</span>
               ) : null}
             </div>
           )}
