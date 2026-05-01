@@ -131,8 +131,25 @@ export default function CoursePage({ params }: PageProps) {
                 <Users className="w-5 h-5" />
                 <span>{course.enrolledCount || 0} суралцагч</span>
               </div>
-              <div className="text-2xl font-bold text-[#5B7FFF]">
-                ₮{course.price?.toLocaleString() || "0"}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-2xl font-black text-orange-500">
+                  ₮{course.price?.toLocaleString() || "0"}
+                </span>
+                {course.originalPrice && course.originalPrice > course.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">
+                      ₮{course.originalPrice.toLocaleString()}
+                    </span>
+                    <span className="rounded-md bg-red-100 px-2 py-0.5 text-sm font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                      -{Math.round((1 - course.price / course.originalPrice) * 100)}%
+                    </span>
+                  </>
+                )}
+                {course.accessDurationMonths ? (
+                  <span className="text-base font-semibold text-violet-600 dark:text-violet-400">
+                    ({course.accessDurationMonths} сар)
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -346,9 +363,22 @@ export default function CoursePage({ params }: PageProps) {
                     <span className="font-medium">{course.enrolledCount || 0}</span>
                   </div>
 
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center gap-2">
                     <span className="text-muted-foreground">Үнэ</span>
-                    <span className="font-bold text-primary">₮{course.price?.toLocaleString() || "0"}</span>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      <span className="font-black text-orange-500">₮{course.price?.toLocaleString() || "0"}</span>
+                      {course.originalPrice && course.originalPrice > course.price && (
+                        <>
+                          <span className="text-sm text-muted-foreground line-through">₮{course.originalPrice.toLocaleString()}</span>
+                          <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                            -{Math.round((1 - course.price / course.originalPrice) * 100)}%
+                          </span>
+                        </>
+                      )}
+                      {course.accessDurationMonths ? (
+                        <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">({course.accessDurationMonths} сар)</span>
+                      ) : null}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

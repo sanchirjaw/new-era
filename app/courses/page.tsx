@@ -171,6 +171,7 @@ export default function CoursesPage() {
                 rating={course.rating}
                 studentsCount={course.enrolledCount}
                 priceMnt={isUserEnrolledInCourse(course._id || '') ? undefined : course.price}
+                originalPriceMnt={isUserEnrolledInCourse(course._id || '') ? undefined : (course.originalPrice ?? undefined)}
                 accessDurationMonths={course.accessDurationMonths ?? undefined}
                 isEnrolled={isUserEnrolledInCourse(course._id || '')}
                 expiresAt={enrollmentExpiries[course._id || ''] ?? undefined}

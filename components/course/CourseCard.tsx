@@ -41,6 +41,7 @@ export function CourseCard({
   rating,
   studentsCount,
   priceMnt,
+  originalPriceMnt,
   accessDurationMonths,
   isEnrolled = false,
   expiresAt,
@@ -54,6 +55,8 @@ export function CourseCard({
   testId
 }: CourseCardProps) {
   const isFree = priceMnt === 0
+  const hasDiscount = typeof originalPriceMnt === 'number' && typeof priceMnt === 'number' && originalPriceMnt > priceMnt
+  const discountPct = hasDiscount ? Math.round((1 - priceMnt! / originalPriceMnt!) * 100) : 0
 
   // Expiry helpers
   const hasExpiry = isEnrolled && expiresAt
@@ -122,9 +125,13 @@ export function CourseCard({
                 Элссэн
               </Badge>
             ) : (
-              priceMnt !== undefined && (
-                <PriceBadge price={priceMnt} durationMonths={accessDurationMonths} />
-              )
+              hasDiscount ? (
+                <div className="inline-flex items-center gap-1 rounded-md bg-red-600/90 px-2 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                  -{discountPct}%
+                </div>
+              ) : priceMnt !== undefined ? (
+                <PriceBadge price={priceMnt} />
+              ) : null
             )}
           </div>
 
@@ -198,6 +205,30 @@ export function CourseCard({
                 : hasExpiry
                   ? `${expiryDate!.toLocaleDateString("mn-MN")} хүртэл${isExpiringSoon ? ` · ${daysLeft} өдөр` : ""}`
                   : "Насан туршид"}
+            </div>
+          )}
+
+          {/* Price row for non-enrolled courses */}
+          {!isEnrolled && priceMnt !== undefined && (
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              <span className="text-lg font-black text-orange-500">
+                ₮{formatPrice(priceMnt)}
+              </span>
+              {hasDiscount && (
+                <>
+                  <span className="text-sm text-muted-foreground line-through">
+                    ₮{formatPrice(originalPriceMnt)}
+                  </span>
+                  <span className="inline-flex items-center rounded-md bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                    -{discountPct}%
+                  </span>
+                </>
+              )}
+              {accessDurationMonths ? (
+                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+                  ({accessDurationMonths} сар)
+                </span>
+              ) : null}
             </div>
           )}
 
