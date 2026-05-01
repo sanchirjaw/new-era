@@ -406,6 +406,7 @@ export class Database {
         allowRegistration: true,
         requireEmailVerification: false,
         maxFileSize: 0, // 0 means no file size limit
+        freePreviewMinutes: 0,
         allowedFileTypes: ["mp4", "avi", "mov", "wmv", "flv", "webm"],
         googleAnalyticsId: "",
         facebookPixelId: "",

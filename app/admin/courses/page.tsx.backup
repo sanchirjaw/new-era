@@ -1,0 +1,1021 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  BookOpen, 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  ChevronDown, 
+  ChevronRight,
+  Video,
+  Upload,
+  Play,
+  Clock,
+  Users,
+  DollarSign,
+  AlertCircle
+} from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+interface Course {
+  _id: string
+  title: string
+  description: string
+  price: number
+  originalPrice?: number
+  category: string
+  level: "beginner" | "intermediate" | "advanced"
+  duration: number
+  videoUrl?: string
+  thumbnailUrl?: string
+  lessons: Lesson[]
+  enrolledCount: number
+  rating: number
+  totalRatings: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+interface Lesson {
+  _id: string
+  title: string
+  description: string
+  videoUrl: string
+  duration: number
+  order: number
+  isPreview: boolean
+  subCourseId?: string
+  bunnyVideoId?: string
+  tusUploadId?: string
+}
+
+interface SubCourse {
+  _id: string
+  courseId: string
+  title: string
+  description: string
+  lessons: Lesson[]
+  order: number
+  isActive: boolean
+}
+
+export default function AdminCourses() {
+  const [courses, setCourses] = useState<Course[]>([])
+  const [subCourses, setSubCourses] = useState<SubCourse[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [selectedSubCourse, setSelectedSubCourse] = useState<SubCourse | null>(null)
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false)
+  const [isCreateSubCourseDialogOpen, setIsCreateSubCourseDialogOpen] = useState(false)
+  const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false)
+  const [isEditLessonDialogOpen, setIsEditLessonDialogOpen] = useState(false)
+  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set())
+  const [expandedSubCourses, setExpandedSubCourses] = useState<Set<string>>(new Set())
+  const [isCreatingLesson, setIsCreatingLesson] = useState(false)
+  const [courseFormData, setCourseFormData] = useState({
+    title: "",
+    description: "",
+    price: 0,
+    originalPrice: 0,
+    category: "",
+    level: "beginner" as "beginner" | "intermediate" | "advanced",
+    isActive: true
+  })
+  const [subCourseFormData, setSubCourseFormData] = useState({
+    title: "",
+    description: "",
+    order: 1,
+    isActive: true
+  })
+  const [lessonFormData, setLessonFormData] = useState({
+    title: "",
+    description: "",
+    order: 1,
+    isPreview: false,
+    videoFile: null as File | null
+  })
+  const router = useRouter()
+  const { toast } = useToast()
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (!response.ok || response.status === 401) {
+        router.push("/admin/login")
+        return
+      }
+      
+      const data = await response.json()
+      if (data.user.role !== "admin") {
+        router.push("/admin/login")
+        return
+      }
+      
+      fetchCourses()
+      fetchSubCourses()
+    } catch (error) {
+      console.error("Auth check failed:", error)
+      router.push("/admin/login")
+    }
+  }
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch("/api/admin/courses")
+      if (response.ok) {
+        const data = await response.json()
+        setCourses(data.courses)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch courses",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to fetch courses:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch courses",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSubCourses = async () => {
+    try {
+      const response = await fetch("/api/admin/sub-courses")
+      if (response.ok) {
+        const data = await response.json()
+        setSubCourses(data.subCourses)
+      } else {
+        console.log("Failed to fetch sub-courses, using empty array")
+        setSubCourses([])
+      }
+    } catch (error) {
+      console.error("Failed to fetch sub-courses:", error)
+      setSubCourses([])
+    }
+  }
+
+  const fetchLessons = async (subCourseId: string) => {
+    try {
+      const response = await fetch(`/api/admin/lessons?subCourseId=${subCourseId}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.lessons || []
+      } else {
+        console.log("Failed to fetch lessons for sub-course:", subCourseId)
+        return []
+      }
+    } catch (error) {
+      console.error("Failed to fetch lessons for sub-course:", error)
+      return []
+    }
+  }
+
+  const handleCreateCourse = async () => {
+    try {
+      const response = await fetch("/api/admin/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(courseFormData)
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Course created successfully"
+        })
+        setIsCreateCourseDialogOpen(false)
+        setCourseFormData({
+          title: "",
+          description: "",
+          price: 0,
+          originalPrice: 0,
+          category: "",
+          level: "beginner",
+          isActive: true
+        })
+        fetchCourses()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create course",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to create course:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCreateSubCourse = async () => {
+    if (!selectedCourse) return
+
+    try {
+      const response = await fetch("/api/admin/sub-courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...subCourseFormData,
+          courseId: selectedCourse._id
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Sub-course created successfully"
+        })
+        setIsCreateSubCourseDialogOpen(false)
+        setSubCourseFormData({
+          title: "",
+          description: "",
+          order: 1,
+          isActive: true
+        })
+        fetchSubCourses()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create sub-course",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to create sub-course:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create sub-course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCreateLesson = async () => {
+    if (!selectedSubCourse || !lessonFormData.videoFile) return
+
+    if (isCreatingLesson) return // Prevent multiple submissions
+
+    setIsCreatingLesson(true)
+
+    try {
+      // Show loading state
+      toast({
+        title: "Uploading video...",
+        description: "Please wait while we upload your video file.",
+      })
+
+      // First, upload video using TUS
+      const uploadResult = await uploadVideoWithTUS(lessonFormData.videoFile)
+      
+      if (!uploadResult) {
+        toast({
+          title: "Error",
+          description: "Failed to upload video",
+          variant: "destructive"
+        })
+        return
+      }
+
+      toast({
+        title: "Video uploaded!",
+        description: "Now creating lesson...",
+      })
+
+      // Create lesson with video upload info
+      const response = await fetch("/api/admin/lessons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...lessonFormData,
+          subCourseId: selectedSubCourse._id,
+          bunnyVideoId: uploadResult.videoId,
+          videoUrl: uploadResult.videoUrl
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Lesson created successfully"
+        })
+        setIsCreateLessonDialogOpen(false)
+        setLessonFormData({
+          title: "",
+          description: "",
+          order: 1,
+          isPreview: false,
+          videoFile: null
+        })
+        fetchSubCourses()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to create lesson",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to create lesson:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create lesson",
+        variant: "destructive"
+      })
+    } finally {
+      setIsCreatingLesson(false)
+    }
+  }
+
+  const uploadVideoWithTUS = async (file: File): Promise<{ uploadId: string; videoId: string; videoUrl: string } | null> => {
+    try {
+      console.log("Starting video upload to Bunny.net:", {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      })
+
+      // Create FormData for the upload
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('title', lessonFormData.title || file.name)
+      formData.append('description', lessonFormData.description || 'Video lesson')
+      formData.append('tags', JSON.stringify(['lesson', 'course']))
+      formData.append('category', 'education')
+
+      // Upload to our API endpoint which will handle Bunny.net
+      const response = await fetch('/api/admin/upload/video', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Video upload failed:", errorData)
+        throw new Error(`Failed to upload video: ${errorData.error || response.statusText}`)
+      }
+
+      const result = await response.json()
+      console.log("Video upload completed successfully:", result)
+      
+      return {
+        uploadId: result.uploadId,
+        videoId: result.videoId,
+        videoUrl: result.videoUrl
+      }
+    } catch (error) {
+      console.error("Video upload failed:", error)
+      return null
+    }
+  }
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!confirm("Are you sure you want to delete this course?")) return
+
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Course deleted successfully"
+        })
+        fetchCourses()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete course",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to delete course:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteSubCourse = async (subCourseId: string) => {
+    if (!confirm("Are you sure you want to delete this sub-course?")) return
+
+    try {
+      const response = await fetch(`/api/admin/sub-courses/${subCourseId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Sub-course deleted successfully"
+        })
+        fetchSubCourses()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete sub-course",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Failed to delete sub-course:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete sub-course",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (!confirm("Are you sure you want to delete this lesson?")) return
+
+    try {
+      const response = await fetch(`/api/admin/lessons/${lessonId}`, {
+        method: "DELETE"
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Lesson deleted successfully"
+        })
+        // Refresh lessons for the current sub-course
+        const currentSubCourseId = lessons.find(l => l._id === lessonId)?.subCourseId
+        if (currentSubCourseId) {
+          const lessonsData = await fetchLessons(currentSubCourseId)
+          setLessons(prev => prev.filter(l => l.subCourseId !== currentSubCourseId).concat(lessonsData))
+        }
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete lesson",
+          variant: "destructive"
+        })
+      }
+      } catch (error) {
+        console.error("Failed to delete lesson:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete lesson",
+          variant: "destructive"
+        })
+      }
+    }
+  }
+
+  const toggleCourseExpansion = (courseId: string) => {
+    const newExpanded = new Set(expandedCourses)
+    if (newExpanded.has(courseId)) {
+      newExpanded.delete(courseId)
+    } else {
+      newExpanded.add(courseId)
+    }
+    setExpandedCourses(newExpanded)
+  }
+
+  const toggleSubCourseExpansion = async (subCourseId: string) => {
+    const newExpanded = new Set(expandedSubCourses)
+    if (newExpanded.has(subCourseId)) {
+      newExpanded.delete(subCourseId)
+    } else {
+      newExpanded.add(subCourseId)
+      // Fetch lessons when expanding
+      const lessonsData = await fetchLessons(subCourseId)
+      setLessons(prev => {
+        const newLessons = [...prev]
+        const existingIndex = newLessons.findIndex(l => l.subCourseId === subCourseId)
+        if (existingIndex >= 0) {
+          newLessons.splice(existingIndex, 1, ...lessonsData)
+        } else {
+          newLessons.push(...lessonsData)
+        }
+        return newLessons
+      })
+    }
+    setExpandedSubCourses(newExpanded)
+  }
+
+  const getCourseSubCourses = (courseId: string) => {
+    return subCourses.filter(sc => sc.courseId === courseId)
+  }
+
+  const getSubCourseLessons = (subCourseId: string) => {
+    return lessons.filter(lesson => lesson.subCourseId === subCourseId)
+  }
+
+  const filteredCourses = courses.filter(course =>
+    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Хичээл удирдах</h1>
+            <p className="text-gray-600">Хичээлүүдийг нэмэх, засах, устгах</p>
+          </div>
+
+          {/* Main Content */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Хичээлүүд ({courses.length})</CardTitle>
+                <Dialog open={isCreateCourseDialogOpen} onOpenChange={setIsCreateCourseDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Шинэ хичээл
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Create New Course</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="courseTitle">Title</Label>
+                          <Input
+                            id="courseTitle"
+                            value={courseFormData.title}
+                            onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
+                            placeholder="Enter course title"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="courseCategory">Category</Label>
+                          <Input
+                            id="courseCategory"
+                            value={courseFormData.category}
+                            onChange={(e) => setCourseFormData({ ...courseFormData, category: e.target.value })}
+                            placeholder="Enter course category"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="courseDescription">Description</Label>
+                        <Textarea
+                          id="courseDescription"
+                          value={courseFormData.description}
+                          onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
+                          placeholder="Enter course description"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="coursePrice">Price (₮)</Label>
+                          <Input
+                            id="coursePrice"
+                            type="number"
+                            value={courseFormData.price}
+                            onChange={(e) => setCourseFormData({ ...courseFormData, price: parseInt(e.target.value) })}
+                            placeholder="Enter price"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="courseOriginalPrice">Original Price (₮)</Label>
+                          <Input
+                            id="courseOriginalPrice"
+                            type="number"
+                            value={courseFormData.originalPrice}
+                            onChange={(e) => setCourseFormData({ ...courseFormData, originalPrice: parseInt(e.target.value) })}
+                            placeholder="Enter original price"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="courseLevel">Level</Label>
+                          <Select value={courseFormData.level} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setCourseFormData({ ...courseFormData, level: value })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="beginner">Beginner</SelectItem>
+                              <SelectItem value="intermediate">Intermediate</SelectItem>
+                              <SelectItem value="advanced">Advanced</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Button onClick={handleCreateCourse} className="w-full">Create Course</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Search Bar */}
+              <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Q Хичээл хайх..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Courses List */}
+          <div className="space-y-4">
+            {filteredCourses.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No courses found</div>
+            ) : (
+              filteredCourses.map((course) => (
+                <div key={course._id} className="border rounded-lg">
+                  {/* Course Header */}
+                  <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <BookOpen className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <h3 className="font-medium text-lg">{course.title}</h3>
+                        <p className="text-sm text-gray-500">{course.description}</p>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                          <span>Үнэ: ${course.price}</span>
+                          <span>Дэд хичээл: {getCourseSubCourses(course._id).length}</span>
+                          <span>Сурагчид: {course.enrolledCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="font-medium">₮{course.price}</div>
+                        <Badge variant={course.isActive ? "default" : "secondary"}>
+                          {course.isActive ? "Идэвхтэй" : "Идэвхгүй"}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleCourseExpansion(course._id)}
+                      >
+                        {expandedCourses.has(course._id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteCourse(course._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Sub-courses (when expanded) */}
+                  {expandedCourses.has(course._id) && (
+                    <div className="border-t bg-gray-50 p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium text-gray-800">Дэд хичээлүүд ({getCourseSubCourses(course._id).length})</h4>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCourse(course)
+                            setIsCreateSubCourseDialogOpen(true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Дэд хичээл нэмэх
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        {getCourseSubCourses(course._id).length === 0 ? (
+                          <div className="text-center py-6 text-gray-500">
+                            <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                            <p className="mb-3">No sub-courses found</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCourse(course)
+                                setIsCreateSubCourseDialogOpen(true)
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create First Sub-course
+                            </Button>
+                          </div>
+                        ) : (
+                          getCourseSubCourses(course._id).map((subCourse) => (
+                            <div key={subCourse._id} className="bg-white rounded border">
+                              <div className="flex items-center justify-between p-3">
+                                <div className="flex items-center gap-3">
+                                  <BookOpen className="h-5 w-5 text-green-600" />
+                                  <div>
+                                    <h5 className="font-medium">{subCourse.title}</h5>
+                                    <p className="text-sm text-gray-500">{subCourse.description}</p>
+                                    <p className="text-xs text-gray-500">Order: {subCourse.order}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => toggleSubCourseExpansion(subCourse._id)}
+                                  >
+                                    {expandedSubCourses.has(subCourse._id) ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSubCourse(subCourse)
+                                      setIsCreateLessonDialogOpen(true)
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Хичээл нэмэх
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteSubCourse(subCourse._id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {/* Lessons (when sub-course expanded) */}
+                              {expandedSubCourses.has(subCourse._id) && (
+                                <div className="border-t bg-gray-25 p-3">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h6 className="font-medium text-sm text-gray-700">
+                                      Хичээлүүд ({getSubCourseLessons(subCourse._id).length})
+                                    </h6>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {getSubCourseLessons(subCourse._id).length === 0 ? (
+                                      <div className="text-center py-3 text-gray-500 text-sm">
+                                        <Video className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                        <p>No lessons found</p>
+                                      </div>
+                                    ) : (
+                                      getSubCourseLessons(subCourse._id)
+                                        .sort((a, b) => a.order - b.order)
+                                        .map((lesson) => (
+                                          <div key={lesson._id} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
+                                            <div className="flex items-center gap-2">
+                                              <Video className="h-4 w-4 text-blue-600" />
+                                              <div>
+                                                <p className="font-medium">{lesson.title}</p>
+                                                <p className="text-xs text-gray-500">{lesson.description}</p>
+                                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                  <span>Order: {lesson.order}</span>
+                                                  <span>•</span>
+                                                  <span>{lesson.duration} мин</span>
+                                                  {lesson.isPreview && (
+                                                    <>
+                                                      <span>•</span>
+                                                      <Badge variant="secondary" className="text-xs">Preview</Badge>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                  setSelectedLesson(lesson)
+                                                  setIsEditLessonDialogOpen(true)
+                                                }}
+                                              >
+                                                <Edit className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeleteLesson(lesson._id)}
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Create Sub-Course Dialog */}
+          <Dialog open={isCreateSubCourseDialogOpen} onOpenChange={setIsCreateSubCourseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Sub-Course</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="subCourseTitle">Title</Label>
+              <Input
+                id="subCourseTitle"
+                value={subCourseFormData.title}
+                onChange={(e) => setSubCourseFormData({ ...subCourseFormData, title: e.target.value })}
+                placeholder="Enter sub-course title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="subCourseDescription">Description</Label>
+              <Textarea
+                id="subCourseDescription"
+                value={subCourseFormData.description}
+                onChange={(e) => setSubCourseFormData({ ...subCourseFormData, description: e.target.value })}
+                placeholder="Enter sub-course description"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="subCourseOrder">Order</Label>
+                <Input
+                  id="subCourseOrder"
+                  type="number"
+                  value={subCourseFormData.order}
+                  onChange={(e) => setSubCourseFormData({ ...subCourseFormData, order: parseInt(e.target.value) })}
+                  placeholder="Enter order"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="subCourseActive"
+                  checked={subCourseFormData.isActive}
+                  onCheckedChange={(checked) => setSubCourseFormData({ ...subCourseFormData, isActive: checked })}
+                />
+                <Label htmlFor="subCourseActive">Active</Label>
+              </div>
+            </div>
+            <Button onClick={handleCreateSubCourse} className="w-full">Create Sub-Course</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Lesson Dialog */}
+      <Dialog open={isCreateLessonDialogOpen} onOpenChange={setIsCreateLessonDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Lesson</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="lessonTitle">Title</Label>
+                <Input
+                  id="lessonTitle"
+                  value={lessonFormData.title}
+                  onChange={(e) => setLessonFormData({ ...lessonFormData, title: e.target.value })}
+                  placeholder="Enter lesson title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lessonOrder">Order</Label>
+                <Input
+                  id="lessonOrder"
+                  type="number"
+                  value={lessonFormData.order}
+                  onChange={(e) => setLessonFormData({ ...lessonFormData, order: parseInt(e.target.value) })}
+                  placeholder="Enter order"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="lessonDescription">Description</Label>
+              <Textarea
+                id="lessonDescription"
+                value={lessonFormData.description}
+                onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
+                placeholder="Enter lesson description"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="lessonVideo">Video File</Label>
+              <Input
+                id="lessonVideo"
+                type="file"
+                accept="video/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  if (file) {
+                    console.log("File selected:", {
+                      name: file.name,
+                      size: file.size,
+                      type: file.type,
+                      lastModified: file.lastModified,
+                      sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+                    })
+                    
+                    // Show file info to user
+                    toast({
+                      title: "File selected",
+                      description: `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB) - Type: ${file.type || 'Unknown'}`
+                    })
+                  }
+                  setLessonFormData({ ...lessonFormData, videoFile: file })
+                }}
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Supported formats: MP4, AVI, MOV, WMV, FLV, WebM. 
+              </p>
+              <p className="text-xs text-blue-500 mt-1">
+                Note: Videos are uploaded to Bunny.net and stored in MongoDB. Ensure BUNNY_API_KEY and BUNNY_VIDEO_LIBRARY_ID are configured.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="lessonPreview"
+                checked={lessonFormData.isPreview}
+                onCheckedChange={(checked) => setLessonFormData({ ...lessonFormData, isPreview: checked })}
+              />
+              <Label htmlFor="lessonPreview">Preview Lesson</Label>
+            </div>
+            <Button 
+              onClick={handleCreateLesson} 
+              className="w-full" 
+              disabled={!lessonFormData.videoFile || isCreatingLesson}
+            >
+              {isCreatingLesson ? "Creating Lesson..." : "Create Lesson"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+        </>
+      )}
+    </div>
+  )
+}

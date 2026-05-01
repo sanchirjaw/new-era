@@ -10,11 +10,9 @@ interface AdminAuthWrapperProps {
 export function AdminAuthWrapper({ children }: AdminAuthWrapperProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  // Skip authentication check for login page
   const isLoginPage = pathname === "/admin/login"
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [loading, setLoading] = useState(!isLoginPage)
 
   useEffect(() => {
     // If it's the login page, don't check authentication

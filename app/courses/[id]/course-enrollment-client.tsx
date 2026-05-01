@@ -17,6 +17,7 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
     const { user, loading: authLoading, refreshUser } = useAuth()
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [checkingPayment, setCheckingPayment] = useState(false)
+    const [freePreviewMinutes, setFreePreviewMinutes] = useState(0)
     const searchParams = useSearchParams()
 
     // Check for payment success and verify enrollment
@@ -84,6 +85,22 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
         }
     }, [authLoading])
 
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings", { cache: "no-store" })
+                if (response.ok) {
+                    const data = await response.json()
+                    setFreePreviewMinutes(Number(data.settings?.freePreviewMinutes) || 0)
+                }
+            } catch (error) {
+                console.error("Error fetching public settings:", error)
+            }
+        }
+
+        fetchSettings()
+    }, [])
+
     // Check enrollment status
     const isLoggedIn = !!user
     const isEnrolled = course && user?.enrolledCourses?.includes(course._id || '')
@@ -150,6 +167,14 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
 
         return (
             <div className="space-y-3">
+                {freePreviewMinutes > 0 && (
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href={`/courses/${course._id}/learn`}>
+                            <Play className="w-4 h-4 mr-2" />
+                            Эхний {freePreviewMinutes} минут үнэгүй үзэх
+                        </Link>
+                    </Button>
+                )}
                 <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                     <div className="text-red-600 dark:text-red-400 font-medium mb-2">
                         🛒 Худалдаж авах шаардлагатай

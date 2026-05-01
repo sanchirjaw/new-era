@@ -25,6 +25,7 @@ interface PlatformSettings {
   allowRegistration: boolean
   requireEmailVerification: boolean
   maxFileSize: number
+  freePreviewMinutes: number
   allowedFileTypes: string[]
   googleAnalyticsId: string
   facebookPixelId: string
@@ -72,6 +73,7 @@ export default function AdminSettings() {
     allowRegistration: true,
     requireEmailVerification: false,
     maxFileSize: 0, // 0 means no file size limit
+    freePreviewMinutes: 0,
     allowedFileTypes: ["mp4", "avi", "mov", "wmv", "flv", "webm"],
     googleAnalyticsId: "",
     facebookPixelId: "",
@@ -379,6 +381,20 @@ export default function AdminSettings() {
                   checked={settings.requireEmailVerification}
                   onCheckedChange={(checked) => handleInputChange("requireEmailVerification", checked)}
                 />
+              </div>
+              <div>
+                <Label htmlFor="freePreviewMinutes">Төлбөргүй үзүүлэх минут</Label>
+                <Input
+                  id="freePreviewMinutes"
+                  type="number"
+                  min="0"
+                  value={settings.freePreviewMinutes}
+                  onChange={(e) => handleInputChange("freePreviewMinutes", Math.max(0, parseInt(e.target.value) || 0))}
+                  placeholder="0"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Бүртгэлтэй боловч төлбөр төлөөгүй хэрэглэгч хэдэн минут үнэгүй үзэхийг тохируулна. 0 бол үнэгүй үзүүлэхгүй.
+                </p>
               </div>
             </CardContent>
           </Card>

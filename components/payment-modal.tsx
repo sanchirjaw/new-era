@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Loader2, ExternalLink } from "lucide-react"
 import type { Course } from "@/lib/types"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 interface PaymentModalProps {
   course: Course
@@ -19,6 +20,7 @@ interface BylCheckout {
 }
 
 export function PaymentModal({ course, onClose }: PaymentModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [bylCheckout, setBylCheckout] = useState<BylCheckout | null>(null)
   const [paymentId, setPaymentId] = useState<string | null>(null)

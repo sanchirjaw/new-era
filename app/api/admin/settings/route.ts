@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const settings = body.settings
+    const settings = body.settings || body
 
     if (!settings) {
       return NextResponse.json({ error: "Settings data is required" }, { status: 400 })

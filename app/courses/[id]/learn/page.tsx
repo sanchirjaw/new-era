@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import type { Course, Lesson } from "@/lib/types"
 import Link from "next/link"
+import { PaymentModal } from "@/components/payment-modal"
 
 interface EnrolledCourse {
   courseId: string
@@ -31,6 +32,10 @@ export default function LearnPage() {
   const [subCourses, setSubCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set())
+  const [freePreviewMinutes, setFreePreviewMinutes] = useState(0)
+  const [previewSecondsWatched, setPreviewSecondsWatched] = useState(0)
+  const [previewExpired, setPreviewExpired] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
 
   useEffect(() => {
@@ -43,7 +48,7 @@ export default function LearnPage() {
         }
         const courseData = await courseResponse.json()
 
-        const targetCourse = courseData.course
+        const targetCourse = courseData.course as Course | null
         if (!targetCourse) {
           throw new Error("Course not found")
         }
@@ -53,6 +58,16 @@ export default function LearnPage() {
         console.log("Lessons:", targetCourse.lessons)
 
         setCourse(targetCourse)
+
+        try {
+          const settingsResponse = await fetch("/api/settings", { cache: "no-store" })
+          if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json()
+            setFreePreviewMinutes(Number(settingsData.settings?.freePreviewMinutes) || 0)
+          }
+        } catch (error) {
+          console.error("Error fetching public settings:", error)
+        }
 
         // Check if user is enrolled in this course
         if (user) {
@@ -137,6 +152,40 @@ export default function LearnPage() {
     // Regular users need to be enrolled - check user's enrolledCourses array
     return user?.enrolledCourses?.includes(courseId) || false
   }
+
+  const previewLimitSeconds = useMemo(() => Math.max(0, freePreviewMinutes * 60), [freePreviewMinutes])
+  const userHasAccess = hasAccess(course?._id || '')
+  const canUseFreePreview = !!user && !userHasAccess && previewLimitSeconds > 0
+  const remainingPreviewSeconds = Math.max(0, previewLimitSeconds - previewSecondsWatched)
+  const shouldShowVideo = !!selectedLesson?.videoUrl && (userHasAccess || (canUseFreePreview && !previewExpired))
+
+  useEffect(() => {
+    setPreviewSecondsWatched(0)
+    setPreviewExpired(false)
+  }, [course?._id])
+
+  useEffect(() => {
+    if (!canUseFreePreview || previewExpired || !selectedLesson?.videoUrl) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      setPreviewSecondsWatched((current) => {
+        const next = current + 1
+
+        if (next >= previewLimitSeconds) {
+          window.clearInterval(timer)
+          setPreviewExpired(true)
+          setShowPaymentModal(true)
+          return previewLimitSeconds
+        }
+
+        return next
+      })
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [canUseFreePreview, previewExpired, previewLimitSeconds, selectedLesson?.videoUrl])
 
   const handleLessonSelect = (lesson: Lesson) => {
     setSelectedLesson(lesson)
@@ -228,9 +277,7 @@ export default function LearnPage() {
 
 
 
-  const userHasAccess = hasAccess(course._id || '')
-
-  if (!userHasAccess) {
+  if (!userHasAccess && !canUseFreePreview) {
     const isLoggedIn = !!user
 
     return (
@@ -437,14 +484,38 @@ export default function LearnPage() {
               <CardContent>
                 {selectedLesson ? (
                   <div className="space-y-4">
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                      {selectedLesson.videoUrl ? (
+                    {canUseFreePreview && (
+                      <div className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                        <span>Төлбөргүй үзэх хугацаа</span>
+                        <span className="font-semibold">
+                          {Math.floor(remainingPreviewSeconds / 60)}:{String(remainingPreviewSeconds % 60).padStart(2, "0")}
+                        </span>
+                      </div>
+                    )}
+                    <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                      {shouldShowVideo ? (
                         <iframe
                           src={selectedLesson.videoUrl}
                           className="w-full h-full"
                           allowFullScreen
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         />
+                      ) : previewExpired ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/90 text-white p-6">
+                          <div className="max-w-md text-center space-y-4">
+                            <Lock className="w-12 h-12 mx-auto opacity-80" />
+                            <div>
+                              <h3 className="text-xl font-semibold">Төлбөрөө төлнө үү</h3>
+                              <p className="text-sm text-white/75 mt-2">
+                                Төлбөргүй үзэх хугацаа дууссан тул үргэлжлүүлэн үзэхийн тулд төлбөрөө төлнө үү.
+                              </p>
+                            </div>
+                            <Button className="bg-red-600 hover:bg-red-700" onClick={() => setShowPaymentModal(true)}>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Төлбөр төлөх
+                            </Button>
+                          </div>
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white">
                           <div className="text-center">
@@ -481,6 +552,16 @@ export default function LearnPage() {
           </div>
         </div>
       </div>
+
+      {showPaymentModal && course && (
+        <PaymentModal
+          course={course}
+          onClose={() => {
+            setShowPaymentModal(false)
+            refreshUser()
+          }}
+        />
+      )}
 
       <Footer />
     </div>
