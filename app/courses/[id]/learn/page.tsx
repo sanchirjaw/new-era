@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Play, Clock, BookOpen, ChevronLeft, Check, Lock,
-  Video, UserPlus, ShoppingCart, ChevronDown, ChevronRight, Menu, X
+  Video, UserPlus, ShoppingCart, ChevronDown, ChevronRight, Menu, X, Sun, Moon
 } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -38,6 +38,8 @@ export default function LearnPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isDark, setIsDark] = useState(true)
+  const [videoReady, setVideoReady] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,6 +117,7 @@ export default function LearnPage() {
   const shouldShowVideo = !!selectedLesson?.videoUrl && (userHasAccess || (canUseFreePreview && !previewExpired))
 
   useEffect(() => { setPreviewSecondsWatched(0); setPreviewExpired(false) }, [course?._id])
+  useEffect(() => { setVideoReady(false) }, [selectedLesson?._id])
 
   useEffect(() => {
     if (!canUseFreePreview || previewExpired || !selectedLesson?.videoUrl) return
@@ -182,7 +185,7 @@ export default function LearnPage() {
 
   if (!userHasAccess && !canUseFreePreview) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
+      <div className={`min-h-screen flex items-center justify-center p-6 ${isDark ? 'bg-zinc-950' : 'bg-zinc-100'}`}>
         <div className="text-center max-w-sm text-white">
           <div className="text-6xl mb-6">{user ? '💳' : '🔐'}</div>
           <h1 className="text-2xl font-bold mb-3">{user ? 'Хандах эрх байхгүй' : 'Нэвтрэх шаардлагатай'}</h1>
@@ -209,34 +212,35 @@ export default function LearnPage() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-white dark:bg-zinc-950">
+    <div className={`h-screen flex overflow-hidden ${isDark ? 'dark' : ''}`}>
+    <div className="h-screen flex overflow-hidden w-full bg-white dark:bg-zinc-950">
 
       {/* ── LEFT SIDEBAR ── */}
-      <aside className={`${sidebarOpen ? 'w-72' : 'w-0'} shrink-0 bg-zinc-900 text-white flex flex-col h-screen transition-all duration-300 overflow-hidden`}>
+      <aside className={`${sidebarOpen ? 'w-72' : 'w-0'} shrink-0 flex flex-col h-screen transition-all duration-300 overflow-hidden ${isDark ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border-r border-zinc-200'}`}>
         {/* Course header */}
-        <div className="p-4 border-b border-zinc-800">
+        <div className={`p-4 border-b ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
           <Link
             href={`/courses/${course._id}`}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white mb-3 transition-colors"
+            className={`flex items-center gap-1.5 text-xs mb-3 transition-colors ${isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             Хичээл рүү буцах
           </Link>
-          <h2 className="text-sm font-semibold text-white leading-snug line-clamp-2">{course.title}</h2>
+          <h2 className={`text-sm font-semibold leading-snug line-clamp-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>{course.title}</h2>
 
           {/* Progress bar */}
           <div className="mt-3">
-            <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
+            <div className={`flex justify-between text-xs mb-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
               <span>Явц</span>
-              <span className="text-white font-medium">{progressPct}%</span>
+              <span className={`font-medium ${isDark ? 'text-white' : 'text-zinc-900'}`}>{progressPct}%</span>
             </div>
-            <div className="w-full bg-zinc-700 rounded-full h-1.5">
+            <div className={`w-full rounded-full h-1.5 ${isDark ? 'bg-zinc-700' : 'bg-zinc-200'}`}>
               <div
                 className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-500 mt-1">{completedCount}/{totalLessons} хичээл</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{completedCount}/{totalLessons} хичээл</p>
           </div>
         </div>
 
@@ -253,16 +257,16 @@ export default function LearnPage() {
                 {/* Section header */}
                 <button
                   onClick={() => toggleSection(subCourse._id)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-zinc-800 transition-colors"
+                  className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}
                 >
-                  <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wide truncate pr-2">
+                  <span className={`text-xs font-semibold uppercase tracking-wide truncate pr-2 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
                     {subCourse.title}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-zinc-500">{sectionLessons.length}</span>
+                    <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{sectionLessons.length}</span>
                     {isExpanded
-                      ? <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
-                      : <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />}
+                      ? <ChevronDown className={`w-3.5 h-3.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+                      : <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />}
                   </div>
                 </button>
 
@@ -276,10 +280,14 @@ export default function LearnPage() {
                         <button
                           key={lesson._id}
                           onClick={() => setSelectedLesson(lesson)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-l-2 ${
                             isActive
-                              ? 'bg-zinc-700 border-l-2 border-emerald-500'
-                              : 'hover:bg-zinc-800 border-l-2 border-transparent'
+                              ? isDark
+                                ? 'bg-zinc-700 border-emerald-500'
+                                : 'bg-emerald-50 border-emerald-500'
+                              : isDark
+                                ? 'hover:bg-zinc-800 border-transparent'
+                                : 'hover:bg-zinc-100 border-transparent'
                           }`}
                         >
                           {/* Done indicator */}
@@ -287,22 +295,26 @@ export default function LearnPage() {
                             isDone
                               ? 'bg-emerald-500 border-emerald-500'
                               : isActive
-                              ? 'border-zinc-400'
-                              : 'border-zinc-600'
+                              ? isDark ? 'border-zinc-400' : 'border-zinc-500'
+                              : isDark ? 'border-zinc-600' : 'border-zinc-300'
                           }`}>
                             {isDone
                               ? <Check className="w-3 h-3 text-white" />
-                              : <Play className="w-2.5 h-2.5 text-zinc-400 ml-0.5" />}
+                              : <Play className={`w-2.5 h-2.5 ml-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`} />}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm leading-snug truncate ${isActive ? 'text-white font-medium' : 'text-zinc-300'}`}>
+                            <p className={`text-sm leading-snug truncate ${
+                              isActive
+                                ? isDark ? 'text-white font-medium' : 'text-emerald-800 font-medium'
+                                : isDark ? 'text-zinc-300' : 'text-zinc-700'
+                            }`}>
                               {lesson.order}. {lesson.title}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-zinc-500">{lesson.duration} мин</span>
+                              <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{lesson.duration} мин</span>
                               {lesson.isPreview && (
-                                <span className="text-xs text-emerald-400">үнэгүй</span>
+                                <span className="text-xs text-emerald-500">үнэгүй</span>
                               )}
                             </div>
                           </div>
@@ -326,22 +338,27 @@ export default function LearnPage() {
                 <button
                   key={lesson._id}
                   onClick={() => setSelectedLesson(lesson)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-l-2 ${
                     isActive
-                      ? 'bg-zinc-700 border-l-2 border-emerald-500'
-                      : 'hover:bg-zinc-800 border-l-2 border-transparent'
+                      ? isDark ? 'bg-zinc-700 border-emerald-500' : 'bg-emerald-50 border-emerald-500'
+                      : isDark ? 'hover:bg-zinc-800 border-transparent' : 'hover:bg-zinc-100 border-transparent'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    isDone ? 'bg-emerald-500 border-emerald-500' : isActive ? 'border-zinc-400' : 'border-zinc-600'
+                    isDone ? 'bg-emerald-500 border-emerald-500'
+                    : isActive ? isDark ? 'border-zinc-400' : 'border-zinc-500'
+                    : isDark ? 'border-zinc-600' : 'border-zinc-300'
                   }`}>
-                    {isDone ? <Check className="w-3 h-3 text-white" /> : <Play className="w-2.5 h-2.5 text-zinc-400 ml-0.5" />}
+                    {isDone ? <Check className="w-3 h-3 text-white" /> : <Play className={`w-2.5 h-2.5 ml-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm leading-snug truncate ${isActive ? 'text-white font-medium' : 'text-zinc-300'}`}>
+                    <p className={`text-sm leading-snug truncate ${
+                      isActive ? isDark ? 'text-white font-medium' : 'text-emerald-800 font-medium'
+                      : isDark ? 'text-zinc-300' : 'text-zinc-700'
+                    }`}>
                       {lesson.order}. {lesson.title}
                     </p>
-                    <span className="text-xs text-zinc-500">{lesson.duration} мин</span>
+                    <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{lesson.duration} мин</span>
                   </div>
                 </button>
               )
@@ -350,40 +367,72 @@ export default function LearnPage() {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 overflow-y-auto flex flex-col bg-white dark:bg-zinc-950">
+      <main className={`flex-1 overflow-y-auto flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
 
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
+        <div className={`flex items-center gap-3 px-4 py-3 border-b shrink-0 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-100 bg-white'}`}>
           <button
             onClick={() => setSidebarOpen(o => !o)}
-            className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className={`p-1.5 rounded transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}
           >
-            <Menu className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+            <Menu className={`w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
+            <h1 className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>
               {selectedLesson?.title || course.title}
             </h1>
           </div>
           {canUseFreePreview && (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 px-2.5 py-1 rounded-full">
+            <div className={`flex items-center gap-1.5 text-xs font-medium text-orange-600 px-2.5 py-1 rounded-full border ${isDark ? 'bg-orange-950/30 border-orange-800' : 'bg-orange-50 border-orange-200'}`}>
               <Clock className="w-3 h-3" />
               {Math.floor(remainingPreviewSeconds / 60)}:{String(remainingPreviewSeconds % 60).padStart(2, "0")}
             </div>
           )}
+          {/* Dark / Light toggle */}
+          <button
+            onClick={() => setIsDark(d => !d)}
+            title={isDark ? 'Цайвар горим' : 'Харанхуй горим'}
+            className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-yellow-400' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
         </div>
 
         {/* Video */}
         <div className="w-full bg-black shrink-0">
           <div className="relative" style={{ paddingBottom: '56.25%' }}>
             {shouldShowVideo ? (
-              <iframe
-                key={selectedLesson?._id}
-                src={selectedLesson?.videoUrl}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
+              videoReady ? (
+                /* ── iframe plays only after user clicks play ── */
+                <iframe
+                  key={selectedLesson?._id}
+                  src={`${selectedLesson?.videoUrl}${selectedLesson?.videoUrl?.includes('?') ? '&' : '?'}autoplay=true`}
+                  className="absolute inset-0 w-full h-full"
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                />
+              ) : (
+                /* ── Click-to-play overlay ── */
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 cursor-pointer group"
+                  onClick={() => setVideoReady(true)}
+                >
+                  {/* Thumbnail background if available */}
+                  {selectedLesson?.thumbnailUrl && (
+                    <img
+                      src={selectedLesson.thumbnailUrl}
+                      alt={selectedLesson.title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-40"
+                    />
+                  )}
+                  {/* Play button */}
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center group-hover:bg-white/25 group-hover:scale-105 transition-all duration-200 shadow-2xl">
+                      <Play className="w-7 h-7 text-white ml-1" fill="white" />
+                    </div>
+                    <span className="text-white/80 text-sm font-medium tracking-wide">Тоглуулах</span>
+                  </div>
+                </div>
+              )
             ) : previewExpired ? (
               <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 text-white">
                 <div className="text-center max-w-sm space-y-4 p-6">
@@ -414,8 +463,8 @@ export default function LearnPage() {
           <div className="flex-1 p-6 max-w-4xl">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{selectedLesson.title}</h2>
-                <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-500">
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{selectedLesson.title}</h2>
+                <div className={`flex items-center gap-3 mt-1.5 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{selectedLesson.duration} мин</span>
                   {selectedLesson.isPreview && <Badge variant="secondary" className="text-xs">Үнэгүй</Badge>}
                 </div>
@@ -424,7 +473,7 @@ export default function LearnPage() {
               {/* Mark done button */}
               {userHasAccess && selectedLesson._id && (
                 completedLessons.has(selectedLesson._id) ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <div className={`flex items-center gap-1.5 text-emerald-600 text-sm font-medium px-3 py-2 rounded-lg border ${isDark ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
                     <Check className="w-4 h-4" />
                     Дууссан
                   </div>
@@ -433,7 +482,9 @@ export default function LearnPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => selectedLesson._id && handleMarkAsDone(selectedLesson._id)}
-                    className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950/30"
+                    className={isDark
+                      ? 'text-emerald-400 border-emerald-700 hover:bg-emerald-950/30'
+                      : 'text-emerald-700 border-emerald-300 hover:bg-emerald-50'}
                   >
                     <Check className="w-4 h-4 mr-1.5" />
                     Дуусгасан гэж тэмдэглэх
@@ -443,11 +494,11 @@ export default function LearnPage() {
             </div>
 
             {selectedLesson.description && (
-              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm">{selectedLesson.description}</p>
+              <p className={`leading-relaxed text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{selectedLesson.description}</p>
             )}
 
             {/* Next / Prev lesson nav */}
-            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+            <div className={`flex items-center gap-3 mt-6 pt-6 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
               {(() => {
                 const allLessons = (course.lessons || []).sort((a, b) => a.order - b.order)
                 const currentIdx = allLessons.findIndex(l => l._id === selectedLesson._id)
@@ -458,7 +509,7 @@ export default function LearnPage() {
                     {prev && (
                       <button
                         onClick={() => setSelectedLesson(prev)}
-                        className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                        className={`flex items-center gap-1.5 text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
                       >
                         <ChevronLeft className="w-4 h-4" />
                         {prev.title}
@@ -467,7 +518,7 @@ export default function LearnPage() {
                     {next && (
                       <button
                         onClick={() => setSelectedLesson(next)}
-                        className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors ml-auto"
+                        className={`flex items-center gap-1.5 text-sm transition-colors ml-auto ${isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
                       >
                         {next.title}
                         <ChevronRight className="w-4 h-4" />
@@ -487,6 +538,7 @@ export default function LearnPage() {
           onClose={() => { setShowPaymentModal(false); refreshUser() }}
         />
       )}
+    </div>
     </div>
   )
 }
