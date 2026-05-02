@@ -26,6 +26,7 @@ interface Lesson {
   subCourseId?: string
   bunnyVideoId?: string
   tusUploadId?: string
+  thumbnailUrl?: string
 }
 
 interface SubCourse {
@@ -83,11 +84,15 @@ export default function AdminCourses() {
     description: string
     order: number
     isPreview: boolean
+    thumbnailUrl: string
+    thumbnailFile: File | null
   }>({
     title: "",
     description: "",
     order: 1,
-    isPreview: false
+    isPreview: false,
+    thumbnailUrl: "",
+    thumbnailFile: null
   })
   const [isEditCourseDialogOpen, setIsEditCourseDialogOpen] = useState(false)
   const [isEditSubCourseDialogOpen, setIsEditSubCourseDialogOpen] = useState(false)
@@ -106,6 +111,8 @@ export default function AdminCourses() {
   const [uploadStatusMsg, setUploadStatusMsg] = useState('')
   const [uploadError, setUploadError] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [lessonThumbnailPreview, setLessonThumbnailPreview] = useState<string | null>(null)
+  const [editLessonThumbnailPreview, setEditLessonThumbnailPreview] = useState<string | null>(null)
   
 
 
@@ -153,12 +160,14 @@ export default function AdminCourses() {
     order: number
     isPreview: boolean
     videoFile: File | null
+    thumbnailFile: File | null
   }>({
     title: "",
     description: "",
     order: 1,
     isPreview: false,
-    videoFile: null
+    videoFile: null,
+    thumbnailFile: null
   })
 
   useEffect(() => {
@@ -554,6 +563,28 @@ export default function AdminCourses() {
       setUploadProgress(100)
       setUploadStatusMsg('Хичээл үүсгэж байна...')
 
+      // Upload thumbnail if provided
+      let thumbnailUrl = ''
+      if (formDataToSave.thumbnailFile) {
+        try {
+          setUploadStatusMsg('Зураг байршуулж байна...')
+          const thumbForm = new FormData()
+          thumbForm.append('file', formDataToSave.thumbnailFile)
+          thumbForm.append('name', `${formDataToSave.title || 'lesson'}_thumbnail`)
+          thumbForm.append('description', `Thumbnail for lesson: ${formDataToSave.title}`)
+          const thumbRes = await fetch('/api/admin/media', {
+            method: 'POST',
+            credentials: 'include',
+            body: thumbForm
+          })
+          if (thumbRes.ok) {
+            const thumbData = await thumbRes.json()
+            thumbnailUrl = thumbData.mediaItem?.cloudinarySecureUrl || thumbData.mediaItem?.cloudinaryUrl || ''
+          }
+        } catch {}
+        setUploadStatusMsg('Хичээл үүсгэж байна...')
+      }
+
       const response = await fetch('/api/admin/lessons', {
         method: 'POST',
         credentials: 'include',
@@ -565,7 +596,8 @@ export default function AdminCourses() {
           order: formDataToSave.order || 1,
           isPreview: formDataToSave.isPreview || false,
           bunnyVideoId: tusInitResult.videoId,
-          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}`
+          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}`,
+          ...(thumbnailUrl && { thumbnailUrl })
         })
       })
 
@@ -591,7 +623,8 @@ export default function AdminCourses() {
         setUploadStatus('idle')
         setUploadProgress(0)
         setUploadStatusMsg('')
-        setLessonFormData({ title: '', description: '', order: 1, isPreview: false, videoFile: null })
+        setLessonFormData({ title: '', description: '', order: 1, isPreview: false, videoFile: null, thumbnailFile: null })
+        setLessonThumbnailPreview(null)
         setSelectedSubCourse(null)
         setIsCreatingLesson(false)
         setIsUploadingInBackground(false)
@@ -1135,8 +1168,11 @@ export default function AdminCourses() {
                                                     title: lesson.title,
                                                     description: lesson.description,
                                                     order: lesson.order,
-                                                    isPreview: lesson.isPreview
+                                                    isPreview: lesson.isPreview,
+                                                    thumbnailUrl: lesson.thumbnailUrl || "",
+                                                    thumbnailFile: null
                                                   })
+                                                  setEditLessonThumbnailPreview(lesson.thumbnailUrl || null)
                                                   setIsEditLessonDialogOpen(true)
                                                 }}
                                               >
@@ -1359,6 +1395,86 @@ export default function AdminCourses() {
                 className="mt-1"
               />
             </div>
+            {/* Edit Thumbnail */}
+            <div>
+              <Label>Thumbnail зураг</Label>
+              {editLessonThumbnailPreview || editLessonFormData.thumbnailUrl ? (
+                <div className="mt-1 flex items-center gap-3 p-3 bg-muted/30 border rounded-lg">
+                  <img
+                    src={editLessonThumbnailPreview || editLessonFormData.thumbnailUrl}
+                    alt="thumbnail"
+                    className="w-16 h-10 object-cover rounded border"
+                  />
+                  <div className="flex-1 min-w-0">
+                    {editLessonFormData.thumbnailFile ? (
+                      <>
+                        <p className="text-sm font-medium truncate">{editLessonFormData.thumbnailFile.name}</p>
+                        <p className="text-xs text-blue-600">Шинэ зураг сонгогдсон</p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Одоогийн thumbnail</p>
+                    )}
+                  </div>
+                  <label htmlFor="editLessonThumbnail" className="cursor-pointer text-xs text-blue-600 hover:underline shrink-0">
+                    Солих
+                    <input
+                      id="editLessonThumbnail"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setEditLessonFormData({ ...editLessonFormData, thumbnailFile: file })
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onload = (ev) => setEditLessonThumbnailPreview(ev.target?.result as string)
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditLessonFormData({ ...editLessonFormData, thumbnailFile: null, thumbnailUrl: "" })
+                      setEditLessonThumbnailPreview(null)
+                    }}
+                    className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="editLessonThumbnail"
+                  className="mt-1 flex items-center gap-3 p-3 border-2 border-dashed border-muted-foreground/20 rounded-lg cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-muted rounded flex items-center justify-center shrink-0">
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Зураг сонгох</p>
+                    <p className="text-xs text-muted-foreground">JPEG, PNG, WebP</p>
+                  </div>
+                  <input
+                    id="editLessonThumbnail"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      setEditLessonFormData({ ...editLessonFormData, thumbnailFile: file })
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onload = (ev) => setEditLessonThumbnailPreview(ev.target?.result as string)
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
             <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
               <div>
                 <p className="text-sm font-medium">Үнэгүй үзэх</p>
@@ -1375,12 +1491,30 @@ export default function AdminCourses() {
               onClick={async () => {
                 if (!selectedLesson) return
                 try {
+                  // Upload new thumbnail if provided
+                  let finalThumbnailUrl = editLessonFormData.thumbnailUrl
+                  if (editLessonFormData.thumbnailFile) {
+                    const thumbForm = new FormData()
+                    thumbForm.append('file', editLessonFormData.thumbnailFile)
+                    thumbForm.append('name', `${editLessonFormData.title || 'lesson'}_thumbnail`)
+                    thumbForm.append('description', `Thumbnail for lesson: ${editLessonFormData.title}`)
+                    const thumbRes = await fetch('/api/admin/media', {
+                      method: 'POST',
+                      credentials: 'include',
+                      body: thumbForm
+                    })
+                    if (thumbRes.ok) {
+                      const thumbData = await thumbRes.json()
+                      finalThumbnailUrl = thumbData.mediaItem?.cloudinarySecureUrl || thumbData.mediaItem?.cloudinaryUrl || finalThumbnailUrl
+                    }
+                  }
+                  const { thumbnailFile: _tf, ...dataToSend } = editLessonFormData
                   const res = await fetch(`/api/admin/lessons/${selectedLesson._id}`, {
                     method: "PUT",
                     credentials: 'include',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editLessonFormData)
-      })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...dataToSend, thumbnailUrl: finalThumbnailUrl })
+                  })
                   if (res.ok) {
                     const subCourseId = selectedLesson.subCourseId
                     if (subCourseId) {
@@ -1392,6 +1526,7 @@ export default function AdminCourses() {
                     }
                     setIsEditLessonDialogOpen(false)
                     setSelectedLesson(null)
+                    setEditLessonThumbnailPreview(null)
                     toast({ title: "Updated", description: "Lesson updated" })
                   } else {
                     const err = await res.json()
@@ -1466,6 +1601,7 @@ export default function AdminCourses() {
               setUploadProgress(0)
               setUploadError('')
               setUploadStatusMsg('')
+              setLessonThumbnailPreview(null)
             }
           }
         }}
@@ -1633,6 +1769,55 @@ export default function AdminCourses() {
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null
                         setLessonFormData({ ...lessonFormData, videoFile: file })
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Thumbnail */}
+              <div>
+                <Label>Thumbnail зураг <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
+                {lessonThumbnailPreview ? (
+                  <div className="mt-1 flex items-center gap-3 p-3 bg-muted/30 border rounded-lg">
+                    <img src={lessonThumbnailPreview} alt="thumbnail" className="w-16 h-10 object-cover rounded border" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{lessonFormData.thumbnailFile?.name}</p>
+                      <p className="text-xs text-muted-foreground">{lessonFormData.thumbnailFile ? (lessonFormData.thumbnailFile.size / 1024 / 1024).toFixed(2) + ' MB' : ''}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setLessonFormData({ ...lessonFormData, thumbnailFile: null }); setLessonThumbnailPreview(null) }}
+                      className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="lessonThumbnail"
+                    className="mt-1 flex items-center gap-3 p-3 border-2 border-dashed border-muted-foreground/20 rounded-lg cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-muted rounded flex items-center justify-center shrink-0">
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Зураг сонгох</p>
+                      <p className="text-xs text-muted-foreground">JPEG, PNG, WebP · Хичээлийн cover зураг</p>
+                    </div>
+                    <input
+                      id="lessonThumbnail"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setLessonFormData({ ...lessonFormData, thumbnailFile: file })
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onload = (ev) => setLessonThumbnailPreview(ev.target?.result as string)
+                          reader.readAsDataURL(file)
+                        } else setLessonThumbnailPreview(null)
                       }}
                     />
                   </label>

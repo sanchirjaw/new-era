@@ -41,6 +41,7 @@ export interface Lesson {
   subCourseId?: string
   bunnyVideoId?: string
   tusUploadId?: string
+  thumbnailUrl?: string
 }
 
 export interface SubCourse {
