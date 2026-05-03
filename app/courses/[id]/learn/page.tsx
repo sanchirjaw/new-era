@@ -67,7 +67,7 @@ export default function LearnPage() {
           }
         }
 
-        if (targetCourse.subCourses?.length > 0) {
+        if (targetCourse.subCourses && targetCourse.subCourses.length > 0) {
           setSubCourses(targetCourse.subCourses)
           // Expand all sections by default
           setExpandedSections(new Set(targetCourse.subCourses.map((sc: any) => sc._id)))

@@ -315,6 +315,7 @@ export default function AdminCourses() {
           description: "",
           price: 0,
           originalPrice: 0,
+          accessDurationMonths: null,
           category: "",
           level: "beginner",
           isActive: true,
