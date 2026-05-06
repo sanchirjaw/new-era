@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import dynamic from "next/dynamic"
+const MarkdownPreview = dynamic(() => import("@uiw/react-markdown-preview"), { ssr: false })
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -492,7 +494,12 @@ export default function LearnPage() {
                 </div>
 
                 {selectedLesson.description && (
-                  <p className={`leading-relaxed text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{selectedLesson.description}</p>
+                  <p className={`leading-relaxed text-sm mb-4 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{selectedLesson.description}</p>
+                )}
+                {selectedLesson.content && (
+                  <div data-color-mode={isDark ? 'dark' : 'light'} className={`text-sm rounded-lg p-4 ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                    <MarkdownPreview source={selectedLesson.content} />
+                  </div>
                 )}
 
                 {/* Prev / Next */}

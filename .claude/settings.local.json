@@ -40,7 +40,10 @@
       "Bash(rmdir \"app/api/debug/bunny\")",
       "Bash(rmdir \"app/api/debug\")",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(npx tsc *)",
+      "mcp__Claude_in_Chrome__read_page"
     ]
   }
 }

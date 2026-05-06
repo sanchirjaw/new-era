@@ -34,6 +34,7 @@ export interface Lesson {
   _id?: string
   title: string
   description: string
+  content?: string
   videoUrl: string
   duration: number // in minutes
   order: number

@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import dynamic from "next/dynamic"
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +21,7 @@ interface Lesson {
   _id: string
   title: string
   description: string
+  content?: string
   videoUrl: string
   duration: number
   order: number
@@ -113,6 +116,8 @@ export default function AdminCourses() {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [lessonThumbnailPreview, setLessonThumbnailPreview] = useState<string | null>(null)
   const [editLessonThumbnailPreview, setEditLessonThumbnailPreview] = useState<string | null>(null)
+  const [lessonContent, setLessonContent] = useState<string>("")
+  const [editLessonContent, setEditLessonContent] = useState<string>("")
   
 
 
@@ -599,6 +604,7 @@ export default function AdminCourses() {
         body: JSON.stringify({
           title: formDataToSave.title || 'Untitled Lesson',
           description: formDataToSave.description || '',
+          content: lessonContent || '',
           subCourseId: subCourseIdToSave,
           order: formDataToSave.order || 1,
           isPreview: formDataToSave.isPreview || false,
@@ -631,6 +637,7 @@ export default function AdminCourses() {
         setUploadProgress(0)
         setUploadStatusMsg('')
         setLessonFormData({ title: '', description: '', order: 1, isPreview: false, videoFile: null, thumbnailFile: null })
+        setLessonContent('')
         setLessonThumbnailPreview(null)
         setSelectedSubCourse(null)
         setIsCreatingLesson(false)
@@ -674,6 +681,24 @@ export default function AdminCourses() {
     } catch (e) {
       toast({ title: "Error", description: "Failed to delete lesson", variant: "destructive" })
     }
+  }
+
+  const handleReorderSubCourse = async (subCourseId: string, direction: 'up' | 'down', courseId: string) => {
+    const siblings = subCourses.filter(sc => sc.courseId === courseId).sort((a, b) => a.order - b.order)
+    const idx = siblings.findIndex(sc => sc._id === subCourseId)
+    if (direction === 'up' && idx === 0) return
+    if (direction === 'down' && idx === siblings.length - 1) return
+    const current = siblings[idx]
+    const other = direction === 'up' ? siblings[idx - 1] : siblings[idx + 1]
+    setSubCourses(prev => prev.map(sc => {
+      if (sc._id === current._id) return { ...sc, order: other.order }
+      if (sc._id === other._id) return { ...sc, order: current.order }
+      return sc
+    }))
+    await Promise.all([
+      fetch(`/api/admin/sub-courses/${current._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: other.order }) }),
+      fetch(`/api/admin/sub-courses/${other._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: current.order }) })
+    ])
   }
 
   const handleReorderLesson = async (lessonId: string, direction: 'up' | 'down', subCourseId: string) => {
@@ -1135,15 +1160,31 @@ export default function AdminCourses() {
                             </Button>
                           </div>
                         ) : (
-                          getCourseSubCourses(course._id).map((subCourse) => (
+                          getCourseSubCourses(course._id).map((subCourse, scIdx, scArr) => (
                             <div key={subCourse._id} className="bg-white rounded border">
                               <div className="flex items-center justify-between p-3">
-                                <div className="flex items-center gap-3">
-                                  <BookOpen className="h-5 w-5 text-green-600" />
+                                <div className="flex items-center gap-2">
+                                  {/* SubCourse ↑↓ reorder */}
+                                  <div className="flex flex-col gap-0.5 shrink-0">
+                                    <button
+                                      onClick={() => handleReorderSubCourse(subCourse._id, 'up', course._id)}
+                                      disabled={scIdx === 0}
+                                      className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      <ChevronUp className="w-3.5 h-3.5 text-gray-400" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleReorderSubCourse(subCourse._id, 'down', course._id)}
+                                      disabled={scIdx === scArr.length - 1}
+                                      className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                                    </button>
+                                  </div>
+                                  <BookOpen className="h-5 w-5 text-green-600 shrink-0" />
                                   <div>
                                     <h5 className="font-medium">{subCourse.title}</h5>
                                     <p className="text-sm text-gray-500">{subCourse.description}</p>
-                                    <p className="text-xs text-gray-500">Order: {subCourse.order}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1315,6 +1356,7 @@ export default function AdminCourses() {
                                                     thumbnailFile: null
                                                   })
                                                   setEditLessonThumbnailPreview(lesson.thumbnailUrl || null)
+                                                  setEditLessonContent(lesson.content || '')
                                                   setIsEditLessonDialogOpen(true)
                                                 }}
                                                 className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
@@ -1549,7 +1591,7 @@ export default function AdminCourses() {
               />
             </div>
             <div>
-              <Label htmlFor="editLessonDescription">Тайлбар</Label>
+              <Label htmlFor="editLessonDescription">Товч тайлбар</Label>
               <Textarea
                 id="editLessonDescription"
                 value={editLessonFormData.description}
@@ -1557,6 +1599,19 @@ export default function AdminCourses() {
                 rows={2}
                 className="mt-1"
               />
+            </div>
+            {/* Rich content editor */}
+            <div data-color-mode="light">
+              <Label>Хичээлийн агуулга <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
+              <div className="mt-1 border rounded-md overflow-hidden">
+                <MDEditor
+                  value={editLessonContent}
+                  onChange={(val) => setEditLessonContent(val || '')}
+                  height={200}
+                  preview="edit"
+                  hideToolbar={false}
+                />
+              </div>
             </div>
             {/* Edit Thumbnail */}
             <div>
@@ -1676,7 +1731,7 @@ export default function AdminCourses() {
                     method: "PUT",
                     credentials: 'include',
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ...dataToSend, thumbnailUrl: finalThumbnailUrl })
+                    body: JSON.stringify({ ...dataToSend, thumbnailUrl: finalThumbnailUrl, content: editLessonContent })
                   })
                   if (res.ok) {
                     const subCourseId = selectedLesson.subCourseId
@@ -1901,7 +1956,7 @@ export default function AdminCourses() {
               </div>
 
               <div>
-                <Label htmlFor="lessonDescription">Тайлбар</Label>
+                <Label htmlFor="lessonDescription">Товч тайлбар</Label>
                 <Textarea
                   id="lessonDescription"
                   value={lessonFormData.description}
@@ -1910,6 +1965,21 @@ export default function AdminCourses() {
                   rows={2}
                   className="mt-1"
                 />
+              </div>
+
+              {/* Rich text content editor */}
+              <div data-color-mode="light">
+                <Label>Хичээлийн агуулга <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
+                <div className="mt-1 border rounded-md overflow-hidden">
+                  <MDEditor
+                    value={lessonContent}
+                    onChange={(val) => setLessonContent(val || '')}
+                    height={220}
+                    preview="edit"
+                    hideToolbar={false}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Markdown дэмжинэ: **bold**, *italic*, - жагсаалт, гэх мэт</p>
               </div>
 
               {/* Video file drop zone */}
