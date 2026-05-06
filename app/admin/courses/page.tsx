@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { BookOpen, Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, Video, Link, Upload, CheckCircle2, AlertCircle, FileVideo, X } from "lucide-react"
+import { BookOpen, Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, ChevronUp, Video, Link, Upload, CheckCircle2, AlertCircle, FileVideo, X, GripVertical, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 
@@ -670,6 +670,35 @@ export default function AdminCourses() {
     }
   }
 
+  const handleReorderLesson = async (lessonId: string, direction: 'up' | 'down', subCourseId: string) => {
+    const subLessons = lessons.filter(l => l.subCourseId === subCourseId).sort((a, b) => a.order - b.order)
+    const idx = subLessons.findIndex(l => l._id === lessonId)
+    if (direction === 'up' && idx === 0) return
+    if (direction === 'down' && idx === subLessons.length - 1) return
+    const current = subLessons[idx]
+    const other = direction === 'up' ? subLessons[idx - 1] : subLessons[idx + 1]
+    // Optimistic update
+    setLessons(prev => prev.map(l => {
+      if (l._id === current._id) return { ...l, order: other.order }
+      if (l._id === other._id) return { ...l, order: current.order }
+      return l
+    }))
+    await Promise.all([
+      fetch(`/api/admin/lessons/${current._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: other.order }) }),
+      fetch(`/api/admin/lessons/${other._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: current.order }) })
+    ])
+  }
+
+  const handleTogglePreview = async (lesson: Lesson) => {
+    const next = !lesson.isPreview
+    setLessons(prev => prev.map(l => l._id === lesson._id ? { ...l, isPreview: next } : l))
+    await fetch(`/api/admin/lessons/${lesson._id}`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPreview: next })
+    })
+  }
+
   const getCourseSubCourses = (courseId: string) => subCourses.filter(sc => sc.courseId === courseId).sort((a, b) => a.order - b.order)
   const getSubCourseLessons = (subCourseId: string) => lessons.filter(l => l.subCourseId === subCourseId)
 
@@ -1109,60 +1138,90 @@ export default function AdminCourses() {
                               </div>
 
                               {expandedSubCourses.has(subCourse._id) && (
-                                <div className="border-t bg-gray-25 p-3">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <h6 className="font-medium text-sm text-gray-700">
-                                      Хичээлүүд ({getSubCourseLessons(subCourse._id).length})
-                                    </h6>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedSubCourse(subCourse)
-                                        // Calculate next order number for this subcourse
-                                        const existingLessons = lessons.filter(l => l.subCourseId === subCourse._id)
-                                        const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
-                                        setLessonFormData(prev => ({ ...prev, order: nextOrder }))
-                                        setIsCreateLessonDialogOpen(true)
-                                      }}
-                                    >
-                                      <Plus className="h-4 w-4 mr-2" />
-                                      Хичээл нэмэх
-                                    </Button>
-                                  </div>
-                                  <div className="space-y-2">
+                                <div className="border-t bg-gray-50/60 p-3">
+                                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
+                                    Хичээлүүд ({getSubCourseLessons(subCourse._id).length})
+                                  </p>
+                                  <div className="space-y-1.5">
                                     {getSubCourseLessons(subCourse._id).length === 0 ? (
-                                      <div className="text-center py-3 text-gray-500 text-sm">
-                                        <Video className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                        <p>No lessons found</p>
+                                      <div className="text-center py-6 text-gray-400 text-sm">
+                                        <Video className="h-8 w-8 mx-auto mb-2 text-gray-200" />
+                                        <p>Хичээл байхгүй байна</p>
                                       </div>
                                     ) : (
                                       getSubCourseLessons(subCourse._id)
                                         .sort((a, b) => a.order - b.order)
-                                        .map((lesson) => (
-                                          <div key={lesson._id} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
-                                            <div className="flex items-center gap-2">
-                                              <Video className="h-4 w-4 text-blue-600" />
-                                              <div>
-                                                <p className="font-medium">{lesson.title}</p>
-                                                <p className="text-xs text-gray-500">{lesson.description}</p>
-                                                <div className="flex items-center gap-2 text-xs text-gray-400">
-                                                  <span>Order: {lesson.order}</span>
-                                                  <span>•</span>
-                                                  <span>{lesson.duration} мин</span>
-                                                  {lesson.isPreview && (
-                                                    <>
-                                                      <span>•</span>
-                                                      <Badge variant="secondary" className="text-xs">Preview</Badge>
-                                                    </>
-                                                  )}
-                                                </div>
-                                              </div>
+                                        .map((lesson, lessonIdx, sortedArr) => (
+                                          <div key={lesson._id} className="flex items-center gap-2 px-2 py-2 bg-white rounded-lg border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all group">
+
+                                            {/* Order number */}
+                                            <span className="text-xs font-mono text-gray-300 w-5 text-center shrink-0">
+                                              {lesson.order}
+                                            </span>
+
+                                            {/* Up / Down arrows */}
+                                            <div className="flex flex-col gap-0.5 shrink-0">
+                                              <button
+                                                onClick={() => handleReorderLesson(lesson._id, 'up', subCourse._id)}
+                                                disabled={lessonIdx === 0}
+                                                className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                              >
+                                                <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+                                              </button>
+                                              <button
+                                                onClick={() => handleReorderLesson(lesson._id, 'down', subCourse._id)}
+                                                disabled={lessonIdx === sortedArr.length - 1}
+                                                className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                                              >
+                                                <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                              </button>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
+
+                                            {/* Thumbnail */}
+                                            {lesson.thumbnailUrl ? (
+                                              <img
+                                                src={lesson.thumbnailUrl}
+                                                alt={lesson.title}
+                                                className="w-14 h-9 object-cover rounded border shrink-0"
+                                              />
+                                            ) : (
+                                              <div className="w-14 h-9 bg-gray-100 rounded border flex items-center justify-center shrink-0">
+                                                <Video className="w-4 h-4 text-gray-300" />
+                                              </div>
+                                            )}
+
+                                            {/* Title + description */}
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-gray-900 truncate leading-snug">
+                                                {lesson.title}
+                                              </p>
+                                              {lesson.description && (
+                                                <p className="text-xs text-gray-400 truncate">{lesson.description}</p>
+                                              )}
+                                              {lesson.duration > 0 && (
+                                                <p className="text-xs text-gray-300">{lesson.duration} мин</p>
+                                              )}
+                                            </div>
+
+                                            {/* Preview toggle — click to toggle */}
+                                            <button
+                                              onClick={() => handleTogglePreview(lesson)}
+                                              title={lesson.isPreview ? 'Үнэгүй горим идэвхтэй — дарж унтраах' : 'Үнэгүй болгох'}
+                                              className={`shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-all ${
+                                                lesson.isPreview
+                                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-medium'
+                                                  : 'border-gray-200 text-gray-300 hover:border-gray-300 hover:text-gray-400'
+                                              }`}
+                                            >
+                                              {lesson.isPreview
+                                                ? <Eye className="w-3 h-3" />
+                                                : <EyeOff className="w-3 h-3" />}
+                                              <span>Үнэгүй</span>
+                                            </button>
+
+                                            {/* Edit / Delete — visible on hover */}
+                                            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              <button
                                                 onClick={() => {
                                                   setSelectedLesson(lesson)
                                                   setEditLessonFormData({
@@ -1176,16 +1235,37 @@ export default function AdminCourses() {
                                                   setEditLessonThumbnailPreview(lesson.thumbnailUrl || null)
                                                   setIsEditLessonDialogOpen(true)
                                                 }}
+                                                className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                                                title="Засах"
                                               >
-                                                <Edit className="h-3 w-3" />
-                                              </Button>
-                                              <Button variant="ghost" size="sm" onClick={() => handleDeleteLesson(lesson._id)}>
-                                                <Trash2 className="h-3 w-3" />
-                                              </Button>
+                                                <Edit className="w-3.5 h-3.5" />
+                                              </button>
+                                              <button
+                                                onClick={() => handleDeleteLesson(lesson._id)}
+                                                className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Устгах"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
                                             </div>
                                           </div>
                                         ))
                                     )}
+
+                                    {/* Add lesson button inline at bottom */}
+                                    <button
+                                      onClick={() => {
+                                        setSelectedSubCourse(subCourse)
+                                        const existingLessons = lessons.filter(l => l.subCourseId === subCourse._id)
+                                        const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
+                                        setLessonFormData(prev => ({ ...prev, order: nextOrder }))
+                                        setIsCreateLessonDialogOpen(true)
+                                      }}
+                                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border-2 border-dashed border-gray-200 text-gray-400 text-sm hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/40 transition-all mt-1"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      Хичээл нэмэх
+                                    </button>
                                   </div>
                                 </div>
                               )}
