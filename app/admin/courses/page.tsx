@@ -151,7 +151,8 @@ export default function AdminCourses() {
     title: "",
     description: "",
     order: 1,
-    isActive: true
+    isActive: true,
+    courseId: ""
   })
 
   const [lessonFormData, setLessonFormData] = useState<{
@@ -433,8 +434,13 @@ export default function AdminCourses() {
         body: JSON.stringify(editSubCourseFormData)
       })
       if (res.ok) {
-        toast({ title: "Updated", description: "Sub-course updated" })
-        setSubCourses(prev => prev.map(sc => sc._id === selectedSubCourse._id ? { ...sc, ...editSubCourseFormData } as SubCourse : sc))
+        toast({ title: "Хадгаллаа", description: "Дэд хичээл шинэчлэгдлээ" })
+        // If courseId changed, reload all data so it appears under the new course
+        if (editSubCourseFormData.courseId && editSubCourseFormData.courseId !== selectedSubCourse.courseId) {
+          await loadData()
+        } else {
+          setSubCourses(prev => prev.map(sc => sc._id === selectedSubCourse._id ? { ...sc, ...editSubCourseFormData } as SubCourse : sc))
+        }
         setIsEditSubCourseDialogOpen(false)
       } else {
         const err = await res.json()
@@ -697,6 +703,39 @@ export default function AdminCourses() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isPreview: next })
     })
+  }
+
+  const handleMoveLesson = async (lessonId: string, fromSubCourseId: string, toSubCourseId: string) => {
+    if (fromSubCourseId === toSubCourseId) return
+    setLessons(prev => prev.map(l => l._id === lessonId ? { ...l, subCourseId: toSubCourseId } : l))
+    await fetch(`/api/admin/lessons/${lessonId}`, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subCourseId: toSubCourseId })
+    })
+    toast({ title: "Шилжүүллээ", description: "Хичээл амжилттай шилжлээ" })
+  }
+
+  const handleReplaceThumbnail = async (lesson: Lesson, file: File) => {
+    try {
+      const thumbForm = new FormData()
+      thumbForm.append('file', file)
+      thumbForm.append('name', `${lesson.title}_thumbnail`)
+      thumbForm.append('description', `Thumbnail for lesson: ${lesson.title}`)
+      const res = await fetch('/api/admin/media', { method: 'POST', credentials: 'include', body: thumbForm })
+      if (!res.ok) throw new Error('Upload failed')
+      const data = await res.json()
+      const newUrl = data.mediaItem?.cloudinarySecureUrl || data.mediaItem?.cloudinaryUrl
+      await fetch(`/api/admin/lessons/${lesson._id}`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailUrl: newUrl })
+      })
+      setLessons(prev => prev.map(l => l._id === lesson._id ? { ...l, thumbnailUrl: newUrl } : l))
+      toast({ title: "Thumbnail солигдлоо" })
+    } catch {
+      toast({ title: "Алдаа", description: "Thumbnail солиход алдаа гарлаа", variant: "destructive" })
+    }
   }
 
   const getCourseSubCourses = (courseId: string) => subCourses.filter(sc => sc.courseId === courseId).sort((a, b) => a.order - b.order)
@@ -1124,7 +1163,8 @@ export default function AdminCourses() {
                                         title: subCourse.title,
                                         description: subCourse.description,
                                         order: subCourse.order,
-                                        isActive: subCourse.isActive
+                                        isActive: subCourse.isActive,
+                                        courseId: subCourse.courseId
                                       })
                                       setIsEditSubCourseDialogOpen(true)
                                     }}
@@ -1177,18 +1217,38 @@ export default function AdminCourses() {
                                               </button>
                                             </div>
 
-                                            {/* Thumbnail */}
-                                            {lesson.thumbnailUrl ? (
-                                              <img
-                                                src={lesson.thumbnailUrl}
-                                                alt={lesson.title}
-                                                className="w-14 h-9 object-cover rounded border shrink-0"
-                                              />
-                                            ) : (
-                                              <div className="w-14 h-9 bg-gray-100 rounded border flex items-center justify-center shrink-0">
-                                                <Video className="w-4 h-4 text-gray-300" />
+                                            {/* Thumbnail — click to replace */}
+                                            <label
+                                              htmlFor={`thumb-${lesson._id}`}
+                                              className="relative w-14 h-9 shrink-0 cursor-pointer group/thumb"
+                                              title="Дарж thumbnail солих"
+                                            >
+                                              {lesson.thumbnailUrl ? (
+                                                lesson.thumbnailUrl.match(/\.(mp4|webm|mov)/) ? (
+                                                  <video src={lesson.thumbnailUrl} className="w-full h-full object-cover rounded border" muted />
+                                                ) : (
+                                                  <img src={lesson.thumbnailUrl} alt="" className="w-full h-full object-cover rounded border" />
+                                                )
+                                              ) : (
+                                                <div className="w-14 h-9 bg-gray-100 rounded border flex items-center justify-center">
+                                                  <Video className="w-4 h-4 text-gray-300" />
+                                                </div>
+                                              )}
+                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 rounded border flex items-center justify-center transition-opacity">
+                                                <Upload className="w-3.5 h-3.5 text-white" />
                                               </div>
-                                            )}
+                                              <input
+                                                id={`thumb-${lesson._id}`}
+                                                type="file"
+                                                accept="image/*,video/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                  const file = e.target.files?.[0]
+                                                  if (file) handleReplaceThumbnail(lesson, file)
+                                                  e.target.value = ''
+                                                }}
+                                              />
+                                            </label>
 
                                             {/* Title + description */}
                                             <div className="flex-1 min-w-0">
@@ -1218,6 +1278,28 @@ export default function AdminCourses() {
                                                 : <EyeOff className="w-3 h-3" />}
                                               <span>Үнэгүй</span>
                                             </button>
+
+                                            {/* Move to another subcourse */}
+                                            {(() => {
+                                              const curSC = subCourses.find(sc => sc._id === lesson.subCourseId)
+                                              const siblings = subCourses.filter(sc => sc.courseId === curSC?.courseId && sc._id !== lesson.subCourseId)
+                                              if (!siblings.length) return null
+                                              return (
+                                                <select
+                                                  value=""
+                                                  onChange={(e) => {
+                                                    if (e.target.value) handleMoveLesson(lesson._id, subCourse._id, e.target.value)
+                                                  }}
+                                                  className="shrink-0 text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-400 bg-white cursor-pointer hover:border-blue-300 focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  title="Өөр дэд хичээл рүү шилжүүлэх"
+                                                >
+                                                  <option value="">Шилжүүлэх ↗</option>
+                                                  {siblings.map(sc => (
+                                                    <option key={sc._id} value={sc._id}>{sc.title}</option>
+                                                  ))}
+                                                </select>
+                                              )
+                                            })()}
 
                                             {/* Edit / Delete — visible on hover */}
                                             <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1628,11 +1710,11 @@ export default function AdminCourses() {
       <Dialog open={isEditSubCourseDialogOpen} onOpenChange={setIsEditSubCourseDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Sub-Course</DialogTitle>
+            <DialogTitle>Дэд хичээл засах</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="editSubCourseTitle">Title</Label>
+              <Label htmlFor="editSubCourseTitle">Гарчиг</Label>
               <Input
                 id="editSubCourseTitle"
                 value={editSubCourseFormData.title}
@@ -1640,17 +1722,35 @@ export default function AdminCourses() {
               />
             </div>
             <div>
-              <Label htmlFor="editSubCourseDescription">Description</Label>
+              <Label htmlFor="editSubCourseDescription">Тайлбар</Label>
               <Textarea
                 id="editSubCourseDescription"
                 value={editSubCourseFormData.description}
                 onChange={(e) => setEditSubCourseFormData({ ...editSubCourseFormData, description: e.target.value })}
-                rows={3}
+                rows={2}
               />
+            </div>
+            {/* Course assignment */}
+            <div>
+              <Label>Харьяалах курс</Label>
+              <Select
+                value={editSubCourseFormData.courseId}
+                onValueChange={(val) => setEditSubCourseFormData({ ...editSubCourseFormData, courseId: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Курс сонгох" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map(c => (
+                    <SelectItem key={c._id} value={c._id}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Өөр курс руу шилжүүлэхийн тулд сонгоно уу</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editSubCourseOrder">Order</Label>
+                <Label htmlFor="editSubCourseOrder">Дараалал</Label>
                 <Input
                   id="editSubCourseOrder"
                   type="number"
@@ -1658,16 +1758,16 @@ export default function AdminCourses() {
                   onChange={(e) => setEditSubCourseFormData({ ...editSubCourseFormData, order: parseInt(e.target.value) || 1 })}
                 />
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 pt-6">
                 <Switch
                   id="editSubCourseActive"
                   checked={editSubCourseFormData.isActive}
                   onCheckedChange={(checked) => setEditSubCourseFormData({ ...editSubCourseFormData, isActive: checked })}
                 />
-                <Label htmlFor="editSubCourseActive">Active</Label>
+                <Label htmlFor="editSubCourseActive">Идэвхтэй</Label>
               </div>
             </div>
-            <Button onClick={handleUpdateSubCourse} className="w-full">Save</Button>
+            <Button onClick={handleUpdateSubCourse} className="w-full">Хадгалах</Button>
           </div>
         </DialogContent>
       </Dialog>
