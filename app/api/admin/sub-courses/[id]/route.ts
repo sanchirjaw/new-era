@@ -58,12 +58,17 @@ export async function DELETE(
     const { id } = await params
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
-    let objectId: ObjectId
-    try { objectId = new ObjectId(id) }
-    catch { return NextResponse.json({ error: `Invalid sub-course id: ${id}` }, { status: 400 }) }
-
     const db = await connectDB()
-    const result = await db.collection("sub_courses").deleteOne({ _id: objectId })
+    // Try ObjectId first, fall back to string _id for legacy data
+    let result
+    try {
+      result = await db.collection("sub_courses").deleteOne({ _id: new ObjectId(id) })
+    } catch {
+      result = { deletedCount: 0 }
+    }
+    if (result.deletedCount === 0) {
+      result = await db.collection("sub_courses").deleteOne({ _id: id as any })
+    }
     if (result.deletedCount === 0) return NextResponse.json({ error: "Sub-course not found" }, { status: 404 })
     return NextResponse.json({ message: "Sub-course deleted successfully" })
   } catch (e: any) {
