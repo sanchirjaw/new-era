@@ -149,8 +149,11 @@ export default function AdminCourses() {
     category: "",
     level: "beginner" as "beginner" | "intermediate" | "advanced",
     isActive: true,
+    thumbnailUrl: "",
     thumbnailFile: null as File | null
   })
+  const [editCourseThumbnailPreview, setEditCourseThumbnailPreview] = useState<string | null>(null)
+  const [editCourseUploading, setEditCourseUploading] = useState(false)
 
   const [editSubCourseFormData, setEditSubCourseFormData] = useState({
     title: "",
@@ -412,23 +415,49 @@ export default function AdminCourses() {
 
   const handleUpdateCourse = async () => {
     if (!selectedCourse) return
+    setEditCourseUploading(true)
     try {
+      let thumbnailUrl = editCourseFormData.thumbnailUrl
+
+      // Upload new thumbnail if selected
+      if (editCourseFormData.thumbnailFile) {
+        const thumbForm = new FormData()
+        thumbForm.append('file', editCourseFormData.thumbnailFile)
+        thumbForm.append('name', `${editCourseFormData.title || 'course'}_thumbnail`)
+        thumbForm.append('description', `Thumbnail for course: ${editCourseFormData.title}`)
+        const thumbRes = await fetch('/api/admin/media', {
+          method: 'POST',
+          credentials: 'include',
+          body: thumbForm
+        })
+        if (thumbRes.ok) {
+          const thumbData = await thumbRes.json()
+          thumbnailUrl = thumbData.mediaItem?.cloudinarySecureUrl || thumbData.mediaItem?.cloudinaryUrl || thumbnailUrl
+        }
+      }
+
+      const { thumbnailFile, ...rest } = editCourseFormData
+      const payload = { ...rest, thumbnailUrl }
+
       const res = await fetch(`/api/admin/courses/${selectedCourse._id}`, {
         method: "PUT",
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editCourseFormData)
+        body: JSON.stringify(payload)
       })
       if (res.ok) {
-        toast({ title: "Updated", description: "Course updated" })
-        setCourses(prev => prev.map(c => c._id === selectedCourse._id ? { ...c, ...editCourseFormData } as Course : c))
+        toast({ title: "Хадгаллаа", description: "Курс шинэчлэгдлээ" })
+        setCourses(prev => prev.map(c => c._id === selectedCourse._id ? { ...c, ...payload } as Course : c))
         setIsEditCourseDialogOpen(false)
+        setEditCourseThumbnailPreview(null)
       } else {
         const err = await res.json()
-        toast({ title: "Error", description: err.error || "Failed", variant: "destructive" })
+        toast({ title: "Алдаа", description: err.error || "Шинэчлэхэд алдаа гарлаа", variant: "destructive" })
       }
     } catch (e) {
-      toast({ title: "Error", description: "Failed to update course", variant: "destructive" })
+      toast({ title: "Алдаа", description: "Шинэчлэхэд алдаа гарлаа", variant: "destructive" })
+    } finally {
+      setEditCourseUploading(false)
     }
   }
 
@@ -1117,8 +1146,10 @@ export default function AdminCourses() {
                             category: course.category,
                             level: course.level,
                             isActive: course.isActive,
+                            thumbnailUrl: course.thumbnailUrl || "",
                             thumbnailFile: null
                           })
+                          setEditCourseThumbnailPreview(null)
                           setIsEditCourseDialogOpen(true)
                         }}
                       >
@@ -1596,9 +1627,85 @@ export default function AdminCourses() {
                 checked={editCourseFormData.isActive}
                 onCheckedChange={(checked) => setEditCourseFormData({ ...editCourseFormData, isActive: checked })}
               />
-              <Label htmlFor="editCourseActive">Active</Label>
+              <Label htmlFor="editCourseActive">Идэвхтэй</Label>
             </div>
-            <Button onClick={handleUpdateCourse} className="w-full">Save</Button>
+
+            {/* Thumbnail */}
+            <div>
+              <Label>Thumbnail зураг</Label>
+              <div className="mt-1">
+                {(editCourseThumbnailPreview || editCourseFormData.thumbnailUrl) ? (
+                  <div className="relative group w-full aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+                    <img
+                      src={editCourseThumbnailPreview || editCourseFormData.thumbnailUrl}
+                      alt="thumbnail"
+                      className="w-full h-full object-cover"
+                    />
+                    <label
+                      htmlFor="editCourseThumbnailInput"
+                      className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Upload className="w-6 h-6 text-white mb-1" />
+                      <span className="text-white text-sm font-semibold">Зураг солих</span>
+                      <input
+                        id="editCourseThumbnailInput"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null
+                          setEditCourseFormData({ ...editCourseFormData, thumbnailFile: file })
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (ev) => setEditCourseThumbnailPreview(ev.target?.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                          e.target.value = ""
+                        }}
+                      />
+                    </label>
+                    {editCourseThumbnailPreview && (
+                      <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Шинэ зураг
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="editCourseThumbnailInput"
+                    className="flex flex-col items-center gap-2 p-6 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/40 transition-colors"
+                  >
+                    <Upload className="w-7 h-7 text-gray-300" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-600">Зураг сонгох</p>
+                      <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, WebP</p>
+                    </div>
+                    <input
+                      id="editCourseThumbnailInput"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setEditCourseFormData({ ...editCourseFormData, thumbnailFile: file })
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onload = (ev) => setEditCourseThumbnailPreview(ev.target?.result as string)
+                          reader.readAsDataURL(file)
+                        }
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <Button onClick={handleUpdateCourse} className="w-full h-11 font-semibold" disabled={editCourseUploading}>
+              {editCourseUploading ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> Хадгалж байна...</>
+              ) : "Хадгалах"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
