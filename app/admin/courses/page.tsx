@@ -1526,18 +1526,18 @@ export default function AdminCourses() {
       </Dialog>
 
       {/* Edit Course Dialog */}
-      <Dialog open={isEditCourseDialogOpen} onOpenChange={setIsEditCourseDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isEditCourseDialogOpen} onOpenChange={(open) => { setIsEditCourseDialogOpen(open); if (!open) setEditCourseThumbnailPreview(null) }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Edit Course</DialogTitle>
+            <DialogTitle>Курс засах</DialogTitle>
             <DialogDescription>
-              Edit the course information below.
+              Курсын мэдээллийг засаж хадгална уу.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-1 flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editCourseTitle">Title</Label>
+                <Label htmlFor="editCourseTitle">Гарчиг</Label>
                 <Input
                   id="editCourseTitle"
                   value={editCourseFormData.title}
@@ -1545,7 +1545,7 @@ export default function AdminCourses() {
                 />
               </div>
               <div>
-                <Label htmlFor="editCourseCategory">Category</Label>
+                <Label htmlFor="editCourseCategory">Ангилал</Label>
                 <Input
                   id="editCourseCategory"
                   value={editCourseFormData.category}
@@ -1554,7 +1554,7 @@ export default function AdminCourses() {
               </div>
             </div>
             <div>
-              <Label htmlFor="editCourseDescription">Description</Label>
+              <Label htmlFor="editCourseDescription">Тайлбар</Label>
               <Textarea
                 id="editCourseDescription"
                 value={editCourseFormData.description}
