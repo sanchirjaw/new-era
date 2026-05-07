@@ -1,58 +1,43 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth-server"
-import { db } from "@/lib/database"
+import { connectDB } from "@/lib/database"
 
-// GET /api/admin/courses - Get all courses
+// GET /api/admin/courses
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin authentication
     const token = request.cookies.get("admin-token")?.value
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const user = verifyToken(token)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    // Get all courses
-    const courses = await db.getAllCourses()
-
+    const db = await connectDB()
+    const raw = await db.collection("courses").find({}).sort({ createdAt: -1 }).toArray()
+    const courses = raw.map(c => ({ ...c, _id: c._id.toString() }))
     return NextResponse.json({ courses })
-  } catch (error) {
-    console.error("Failed to fetch courses:", error)
+  } catch (e) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-// POST /api/admin/courses - Create new course
+// POST /api/admin/courses
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin authentication
     const token = request.cookies.get("admin-token")?.value
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const user = verifyToken(token)
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { title, description, price, originalPrice, accessDurationMonths, category, level, isActive, thumbnailUrl } = await request.json()
 
-    // Validate input
     if (!title || !description || !category || !level) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
-
     if (!["beginner", "intermediate", "advanced"].includes(level)) {
       return NextResponse.json({ error: "Invalid level" }, { status: 400 })
     }
 
-    // Create course
-    const courseId = await db.createCourse({
+    const db = await connectDB()
+    const result = await db.collection("courses").insertOne({
       title,
       description,
       price: price || 0,
@@ -60,21 +45,19 @@ export async function POST(request: NextRequest) {
       accessDurationMonths: accessDurationMonths ?? null,
       category,
       level,
-      duration: 0, // Will be calculated from lessons
+      duration: 0,
       lessons: [],
       enrolledCount: 0,
       rating: 0,
       totalRatings: 0,
       isActive: isActive !== false,
-      thumbnailUrl: thumbnailUrl || null
+      thumbnailUrl: thumbnailUrl || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
-    return NextResponse.json({
-      message: "Course created successfully",
-      courseId
-    }, { status: 201 })
-  } catch (error) {
-    console.error("Failed to create course:", error)
+    return NextResponse.json({ message: "Course created successfully", courseId: result.insertedId }, { status: 201 })
+  } catch (e) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
