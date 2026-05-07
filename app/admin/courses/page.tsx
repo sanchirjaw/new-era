@@ -694,40 +694,65 @@ export default function AdminCourses() {
   }
 
   const handleReorderSubCourse = async (subCourseId: string, direction: 'up' | 'down', courseId: string) => {
-    const siblings = subCourses.filter(sc => sc.courseId === courseId).sort((a, b) => a.order - b.order)
+    // Sort by order then by _id for stable tie-breaking when orders are equal
+    const siblings = subCourses
+      .filter(sc => sc.courseId === courseId)
+      .sort((a, b) => a.order - b.order || a._id.localeCompare(b._id))
     const idx = siblings.findIndex(sc => sc._id === subCourseId)
     if (direction === 'up' && idx === 0) return
     if (direction === 'down' && idx === siblings.length - 1) return
-    const current = siblings[idx]
-    const other = direction === 'up' ? siblings[idx - 1] : siblings[idx + 1]
+
+    // Swap positions in array and re-assign sequential orders (1,2,3…)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    const reordered = [...siblings]
+    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    const updates = reordered.map((sc, i) => ({ id: sc._id, order: i + 1 }))
+
+    // Optimistic update
     setSubCourses(prev => prev.map(sc => {
-      if (sc._id === current._id) return { ...sc, order: other.order }
-      if (sc._id === other._id) return { ...sc, order: current.order }
-      return sc
+      const u = updates.find(u => u.id === sc._id)
+      return u ? { ...sc, order: u.order } : sc
     }))
-    await Promise.all([
-      fetch(`/api/admin/sub-courses/${current._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: other.order }) }),
-      fetch(`/api/admin/sub-courses/${other._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: current.order }) })
-    ])
+
+    // Persist all that changed
+    await Promise.all(
+      updates
+        .filter((u, i) => siblings[i]?.order !== u.order || siblings.findIndex(s => s._id === u.id) !== i)
+        .map(u => fetch(`/api/admin/sub-courses/${u.id}`, {
+          method: 'PUT', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: u.order })
+        }))
+    )
   }
 
   const handleReorderLesson = async (lessonId: string, direction: 'up' | 'down', subCourseId: string) => {
-    const subLessons = lessons.filter(l => l.subCourseId === subCourseId).sort((a, b) => a.order - b.order)
+    const subLessons = lessons
+      .filter(l => l.subCourseId === subCourseId)
+      .sort((a, b) => a.order - b.order || a._id.localeCompare(b._id))
     const idx = subLessons.findIndex(l => l._id === lessonId)
     if (direction === 'up' && idx === 0) return
     if (direction === 'down' && idx === subLessons.length - 1) return
-    const current = subLessons[idx]
-    const other = direction === 'up' ? subLessons[idx - 1] : subLessons[idx + 1]
+
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    const reordered = [...subLessons]
+    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    const updates = reordered.map((l, i) => ({ id: l._id, order: i + 1 }))
+
     // Optimistic update
     setLessons(prev => prev.map(l => {
-      if (l._id === current._id) return { ...l, order: other.order }
-      if (l._id === other._id) return { ...l, order: current.order }
-      return l
+      const u = updates.find(u => u.id === l._id)
+      return u ? { ...l, order: u.order } : l
     }))
-    await Promise.all([
-      fetch(`/api/admin/lessons/${current._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: other.order }) }),
-      fetch(`/api/admin/lessons/${other._id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: current.order }) })
-    ])
+
+    // Persist all that changed
+    await Promise.all(
+      updates.map(u => fetch(`/api/admin/lessons/${u.id}`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: u.order })
+      }))
+    )
   }
 
   const handleTogglePreview = async (lesson: Lesson) => {
