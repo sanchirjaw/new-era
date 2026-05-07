@@ -118,7 +118,7 @@ export default function AdminCourses() {
   const [editLessonThumbnailPreview, setEditLessonThumbnailPreview] = useState<string | null>(null)
   const [lessonContent, setLessonContent] = useState<string>("")
   const [editLessonContent, setEditLessonContent] = useState<string>("")
-  
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: string; id: string; name: string }>({ open: false, type: "", id: "", name: "" })
 
 
   const [courseFormData, setCourseFormData] = useState({
@@ -342,22 +342,9 @@ export default function AdminCourses() {
     }
   }
 
-  const handleDeleteCourse = async (courseId: string) => {
-        try {
-      const res = await fetch(`/api/admin/courses/${courseId}`, { 
-        method: "DELETE",
-        credentials: 'include'
-      })
-      if (res.ok) {
-        setCourses(prev => prev.filter(c => c._id !== courseId))
-        toast({ title: "Deleted", description: "Course deleted" })
-      } else {
-        const err = await res.json()
-        toast({ title: "Error", description: err.error || "Failed", variant: "destructive" })
-      }
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete course", variant: "destructive" })
-    }
+  const handleDeleteCourse = (courseId: string) => {
+    const course = courses.find(c => c._id === courseId)
+    setDeleteConfirm({ open: true, type: "course", id: courseId, name: course?.title || "Энэ курс" })
   }
 
   const handleCreateSubCourse = async () => {
@@ -392,23 +379,9 @@ export default function AdminCourses() {
     }
   }
 
-  const handleDeleteSubCourse = async (subCourseId: string) => {
-        try {
-      const res = await fetch(`/api/admin/sub-courses/${subCourseId}`, { 
-        method: "DELETE",
-        credentials: 'include'
-      })
-      if (res.ok) {
-        setSubCourses(prev => prev.filter(sc => sc._id !== subCourseId))
-        setLessons(prev => prev.filter(l => l.subCourseId !== subCourseId))
-        toast({ title: "Deleted", description: "Sub-course deleted" })
-      } else {
-        const err = await res.json()
-        toast({ title: "Error", description: err.error || "Failed", variant: "destructive" })
-      }
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete sub-course", variant: "destructive" })
-    }
+  const handleDeleteSubCourse = (subCourseId: string) => {
+    const sc = subCourses.find(s => s._id === subCourseId)
+    setDeleteConfirm({ open: true, type: "subcourse", id: subCourseId, name: sc?.title || "Энэ дэд хичээл" })
   }
 
   const handleUpdateCourse = async () => {
@@ -692,30 +665,52 @@ export default function AdminCourses() {
     }
   }
 
-  const handleDeleteLesson = async (lessonId: string) => {
-        try {
-      const res = await fetch(`/api/admin/lessons/${lessonId}`, { 
-        method: "DELETE",
-        credentials: 'include'
-      })
-      if (res.ok) {
-        const subCourseId = lessons.find(l => l._id === lessonId)?.subCourseId
-        if (subCourseId) {
-          const lessonsData = await fetchLessons(subCourseId)
-          setLessons(prev => {
-            const filtered = prev.filter(l => l.subCourseId !== subCourseId)
-            return [...filtered, ...lessonsData]
-          })
+  const handleDeleteLesson = (lessonId: string) => {
+    const lesson = lessons.find(l => l._id === lessonId)
+    setDeleteConfirm({ open: true, type: "lesson", id: lessonId, name: lesson?.title || "Энэ хичээл" })
+  }
+
+  const handleConfirmDelete = async () => {
+    const { type, id } = deleteConfirm
+    setDeleteConfirm(prev => ({ ...prev, open: false }))
+    try {
+      if (type === "course") {
+        const res = await fetch(`/api/admin/courses/${id}`, { method: "DELETE", credentials: "include" })
+        if (res.ok) {
+          setCourses(prev => prev.filter(c => c._id !== id))
+          toast({ title: "Устгагдлаа", description: "Курс устгагдлаа" })
         } else {
-          setLessons(prev => prev.filter(l => l._id !== lessonId))
+          const err = await res.json()
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
         }
-        toast({ title: "Deleted", description: "Lesson deleted" })
-      } else {
-        const err = await res.json()
-        toast({ title: "Error", description: err.error || "Failed", variant: "destructive" })
+      } else if (type === "subcourse") {
+        const res = await fetch(`/api/admin/sub-courses/${id}`, { method: "DELETE", credentials: "include" })
+        if (res.ok) {
+          setSubCourses(prev => prev.filter(sc => sc._id !== id))
+          setLessons(prev => prev.filter(l => l.subCourseId !== id))
+          toast({ title: "Устгагдлаа", description: "Дэд хичээл устгагдлаа" })
+        } else {
+          const err = await res.json()
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
+        }
+      } else if (type === "lesson") {
+        const res = await fetch(`/api/admin/lessons/${id}`, { method: "DELETE", credentials: "include" })
+        if (res.ok) {
+          const subCourseId = lessons.find(l => l._id === id)?.subCourseId
+          if (subCourseId) {
+            const lessonsData = await fetchLessons(subCourseId)
+            setLessons(prev => [...prev.filter(l => l.subCourseId !== subCourseId), ...lessonsData])
+          } else {
+            setLessons(prev => prev.filter(l => l._id !== id))
+          }
+          toast({ title: "Устгагдлаа", description: "Хичээл устгагдлаа" })
+        } else {
+          const err = await res.json()
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
+        }
       }
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete lesson", variant: "destructive" })
+    } catch {
+      toast({ title: "Алдаа", description: "Устгахад алдаа гарлаа", variant: "destructive" })
     }
   }
 
@@ -842,6 +837,29 @@ export default function AdminCourses() {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={deleteConfirm.open} onOpenChange={open => setDeleteConfirm(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" /> Устгах уу?
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 pt-1">
+              <span className="font-semibold text-gray-800">"{deleteConfirm.name}"</span>-г устгах гэж байна. Энэ үйлдлийг буцаах боломжгүй.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(prev => ({ ...prev, open: false }))}>
+              Үгүй
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={handleConfirmDelete}>
+              Тийм, устга
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Хичээл удирдах</h1>
         <p className="text-gray-600">Хичээлүүдийг нэмэх, засах, устгах</p>
