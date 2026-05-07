@@ -3,13 +3,17 @@ import { verifyToken } from "@/lib/auth-server"
 import { connectDB } from "@/lib/database"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  return NextResponse.json({ message: "Lesson endpoint available", lessonId: params.id })
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  return NextResponse.json({ message: "Lesson endpoint available", lessonId: id })
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get("admin-token")?.value
@@ -17,27 +21,19 @@ export async function DELETE(
     const user = verifyToken(token)
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    let lessonId: ObjectId
-    try { lessonId = new ObjectId(params.id) }
-    catch { return NextResponse.json({ error: "Invalid lesson id" }, { status: 400 }) }
-
+    const { id } = await params
     const db = await connectDB()
-    const result = await db.collection("lessons").deleteOne({ _id: lessonId })
-
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
-    }
-
+    const result = await db.collection("lessons").deleteOne({ _id: new ObjectId(id) })
+    if (result.deletedCount === 0) return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
     return NextResponse.json({ message: "Lesson deleted successfully" })
   } catch (error) {
-    console.error("Delete lesson error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get("admin-token")?.value
@@ -45,24 +41,16 @@ export async function PUT(
     const user = verifyToken(token)
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    let lessonId: ObjectId
-    try { lessonId = new ObjectId(params.id) }
-    catch { return NextResponse.json({ error: "Invalid lesson id" }, { status: 400 }) }
-
+    const { id } = await params
     const updates = await request.json()
     const db = await connectDB()
     const result = await db.collection("lessons").updateOne(
-      { _id: lessonId },
+      { _id: new ObjectId(id) },
       { $set: { ...updates, updatedAt: new Date() } }
     )
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
-    }
-
+    if (result.matchedCount === 0) return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
     return NextResponse.json({ message: "Lesson updated successfully" })
   } catch (error) {
-    console.error("Update lesson error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

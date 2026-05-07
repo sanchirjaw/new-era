@@ -6,11 +6,12 @@ import { ObjectId } from "mongodb"
 // GET /api/admin/sub-courses/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const db = await connectDB()
-    const subCourse = await db.collection("sub_courses").findOne({ _id: new ObjectId(params.id) })
+    const subCourse = await db.collection("sub_courses").findOne({ _id: new ObjectId(id) })
     if (!subCourse) return NextResponse.json({ error: "Sub-course not found" }, { status: 404 })
     return NextResponse.json({ subCourse: { ...subCourse, _id: subCourse._id.toString() } })
   } catch (e) {
@@ -21,7 +22,7 @@ export async function GET(
 // PUT /api/admin/sub-courses/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get("admin-token")?.value
@@ -29,10 +30,11 @@ export async function PUT(
     const user = verifyToken(token)
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+    const { id } = await params
     const updates = await request.json()
     const db = await connectDB()
     const result = await db.collection("sub_courses").updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { $set: { ...updates, updatedAt: new Date() } }
     )
     if (result.matchedCount === 0) return NextResponse.json({ error: "Sub-course not found" }, { status: 404 })
@@ -45,7 +47,7 @@ export async function PUT(
 // DELETE /api/admin/sub-courses/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.cookies.get("admin-token")?.value
@@ -53,8 +55,9 @@ export async function DELETE(
     const user = verifyToken(token)
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+    const { id } = await params
     const db = await connectDB()
-    const result = await db.collection("sub_courses").deleteOne({ _id: new ObjectId(params.id) })
+    const result = await db.collection("sub_courses").deleteOne({ _id: new ObjectId(id) })
     if (result.deletedCount === 0) return NextResponse.json({ error: "Sub-course not found" }, { status: 404 })
     return NextResponse.json({ message: "Sub-course deleted successfully" })
   } catch (e) {
