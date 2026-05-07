@@ -56,11 +56,18 @@ export async function DELETE(
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { id } = await params
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+
+    let objectId: ObjectId
+    try { objectId = new ObjectId(id) }
+    catch { return NextResponse.json({ error: `Invalid course id: ${id}` }, { status: 400 }) }
+
     const db = await connectDB()
-    const result = await db.collection("courses").deleteOne({ _id: new ObjectId(id) })
+    const result = await db.collection("courses").deleteOne({ _id: objectId })
     if (result.deletedCount === 0) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     return NextResponse.json({ message: "Course deleted successfully" })
-  } catch (e) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } catch (e: any) {
+    console.error("DELETE course error:", e)
+    return NextResponse.json({ error: e?.message || "Internal server error" }, { status: 500 })
   }
 }
