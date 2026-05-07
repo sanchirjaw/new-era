@@ -18,14 +18,7 @@ export async function GET(request: NextRequest) {
       _id: sc._id.toString(),
       courseId: sc.courseId?.toString() || "",
     }))
-    const _debug = {
-      dbName: db.databaseName,
-      MONGODB_DB: process.env.MONGODB_DB || "(not set)",
-      count: raw.length,
-      firstIdType: raw[0]?._id?.constructor?.name ?? "none",
-      firstId: raw[0]?._id?.toString() ?? "none",
-    }
-    return NextResponse.json({ subCourses, _debug })
+    return NextResponse.json({ subCourses })
   } catch (e) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

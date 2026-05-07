@@ -672,35 +672,29 @@ export default function AdminCourses() {
 
   const handleConfirmDelete = async () => {
     const { type, id } = deleteConfirm
-    console.log("[DELETE] type:", type, "id:", id)
     setDeleteConfirm(prev => ({ ...prev, open: false }))
     try {
       if (type === "course") {
         const res = await fetch(`/api/admin/courses/${id}`, { method: "DELETE", credentials: "include" })
-        console.log("[DELETE] course status:", res.status)
         if (res.ok) {
           setCourses(prev => prev.filter(c => c._id !== id))
           toast({ title: "Устгагдлаа", description: "Курс устгагдлаа" })
         } else {
           const err = await res.json().catch(() => ({}))
-          console.error("[DELETE] course error:", res.status, err)
-          toast({ title: `Алдаа (${res.status})`, description: err.error || "Амжилтгүй", variant: "destructive" })
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
         }
       } else if (type === "subcourse") {
         const res = await fetch(`/api/admin/sub-courses/${id}`, { method: "DELETE", credentials: "include" })
-        console.log("[DELETE] subcourse status:", res.status)
         if (res.ok) {
           setSubCourses(prev => prev.filter(sc => sc._id !== id))
           setLessons(prev => prev.filter(l => l.subCourseId !== id))
           toast({ title: "Устгагдлаа", description: "Дэд хичээл устгагдлаа" })
         } else {
           const err = await res.json().catch(() => ({}))
-          console.error("[DELETE] subcourse error:", res.status, err)
-          toast({ title: `Алдаа (${res.status})`, description: err.error || "Амжилтгүй", variant: "destructive" })
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
         }
       } else if (type === "lesson") {
         const res = await fetch(`/api/admin/lessons/${id}`, { method: "DELETE", credentials: "include" })
-        console.log("[DELETE] lesson status:", res.status)
         if (res.ok) {
           const subCourseId = lessons.find(l => l._id === id)?.subCourseId
           if (subCourseId) {
@@ -712,13 +706,11 @@ export default function AdminCourses() {
           toast({ title: "Устгагдлаа", description: "Хичээл устгагдлаа" })
         } else {
           const err = await res.json().catch(() => ({}))
-          console.error("[DELETE] lesson error:", res.status, err)
-          toast({ title: `Алдаа (${res.status})`, description: err.error || "Амжилтгүй", variant: "destructive" })
+          toast({ title: "Алдаа", description: err.error || "Амжилтгүй", variant: "destructive" })
         }
       }
-    } catch (e: any) {
-      console.error("[DELETE] exception:", e)
-      toast({ title: "Алдаа", description: e?.message || "Устгахад алдаа гарлаа", variant: "destructive" })
+    } catch {
+      toast({ title: "Алдаа", description: "Устгахад алдаа гарлаа", variant: "destructive" })
     }
   }
 
