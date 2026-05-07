@@ -1,4 +1,4 @@
-import clientPromise from "./mongodb"
+﻿import clientPromise from "./mongodb"
 import type { User } from "./models/User"
 import type { Course } from "./models/Course"
 import type { Enrollment } from "./models/Enrollment"
@@ -7,7 +7,9 @@ import { ObjectId } from "mongodb"
 
 export async function connectDB() {
   const client = await clientPromise
-  return client.db("new-era-platform")
+  // Use MONGODB_DB env var, or default from URI (newera_prod in production), or fallback
+  const dbName = process.env.MONGODB_DB || "new-era-platform"
+  return client.db(dbName)
 }
 
 export class Database {
@@ -33,7 +35,7 @@ export class Database {
   // User operations
   async createUser(user: Omit<User, "_id" | "createdAt" | "updatedAt">): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     // Ensure enrolledCourses is an array of ObjectIds
     const userData = {
@@ -51,25 +53,25 @@ export class Database {
 
   async getAllUsers(): Promise<User[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("users").find({}).toArray()
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("users").findOne({ email })
   }
 
   async getUserById(id: ObjectId): Promise<User | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("users").findOne({ _id: id })
   }
 
   async updateUser(userId: ObjectId, updates: Partial<User>): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     console.log("Database updateUser called with:", { userId: userId.toString(), updates })
     console.log("Phone field in updates:", { phone: updates.phone, phoneType: typeof updates.phone, phoneLength: updates.phone?.length })
@@ -88,7 +90,7 @@ export class Database {
 
   async deleteUser(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("users").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
@@ -96,7 +98,7 @@ export class Database {
   // Course operations
   async createCourse(course: Omit<Course, "_id" | "createdAt" | "updatedAt">): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("courses").insertOne({
       ...course,
       createdAt: new Date(),
@@ -107,19 +109,19 @@ export class Database {
 
   async getAllCourses(): Promise<Course[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("courses").find({ isActive: true }).toArray()
   }
 
   async getCourseById(id: ObjectId): Promise<Course | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("courses").findOne({ _id: id })
   }
 
   async getCourseWithLessons(id: ObjectId): Promise<Course | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     const course = await db.collection("courses").findOne({ _id: id })
     if (!course) return null
@@ -165,7 +167,7 @@ export class Database {
 
   async updateCourse(id: ObjectId, updates: Partial<Course>): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db
       .collection("courses")
       .updateOne({ _id: id }, { $set: { ...updates, updatedAt: new Date() } })
@@ -174,7 +176,7 @@ export class Database {
 
   async deleteCourse(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("courses").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
@@ -182,27 +184,27 @@ export class Database {
   // Enrollment operations
   async createEnrollment(enrollment: Omit<Enrollment, "_id">): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("enrollments").insertOne(enrollment)
     return result.insertedId
   }
 
   async getUserEnrollments(userId: ObjectId): Promise<Enrollment[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("enrollments").find({ userId, isActive: true }).toArray()
   }
 
   async getEnrollmentByUserAndCourse(userId: ObjectId, courseId: ObjectId): Promise<Enrollment | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("enrollments").findOne({ userId, courseId })
   }
 
   // Deactivate expired enrollments for a user; returns array of expired courseId strings
   async deactivateExpiredEnrollments(userId: ObjectId): Promise<string[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const now = new Date()
 
     // Find active enrollments that have an expiresAt in the past
@@ -234,14 +236,14 @@ export class Database {
 
   async deleteEnrollment(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("enrollments").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
 
   async getCourseEnrollmentCount(courseId: ObjectId): Promise<number> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("enrollments").countDocuments({
       courseId,
       isActive: true
@@ -251,7 +253,7 @@ export class Database {
   // Payment operations
   async createPayment(payment: Omit<Payment, "_id" | "createdAt" | "updatedAt">): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("payments").insertOne({
       ...payment,
       createdAt: new Date(),
@@ -262,7 +264,7 @@ export class Database {
 
   async getAllPaymentsWithDetails(): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     const payments = await db.collection("payments")
       .aggregate([
@@ -325,7 +327,7 @@ export class Database {
 
   async updatePaymentStatus(id: ObjectId, status: Payment["status"], transactionId?: string, transactionType?: "qpay" | "byl"): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const updates: any = { status, updatedAt: new Date() }
     
     if (transactionId && transactionType === "qpay") {
@@ -341,7 +343,7 @@ export class Database {
 
   async updatePaymentBylCheckoutId(id: ObjectId, bylCheckoutId: number): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("payments").updateOne(
       { _id: id }, 
       { $set: { bylCheckoutId, updatedAt: new Date() } }
@@ -351,21 +353,21 @@ export class Database {
 
   async deletePayment(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("payments").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
 
   async getUserPayments(userId: ObjectId): Promise<Payment[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("payments").find({ userId }).toArray()
   }
 
   // Statistics
   async getStats() {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
 
     const [userCount, courseCount, enrollmentCount, totalRevenue] = await Promise.all([
       db.collection("users").countDocuments({ role: "student" }),
@@ -388,7 +390,7 @@ export class Database {
   // Platform Settings
   async getPlatformSettings() {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     const settings = await db.collection("platform_settings").findOne({})
     
@@ -425,7 +427,7 @@ export class Database {
   async updatePlatformSettings(settings: any) {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       // Filter out _id field to prevent MongoDB immutable field error
       const { _id, ...settingsWithoutId } = settings
@@ -447,7 +449,7 @@ export class Database {
   // Sub-Course operations
   async createSubCourse(subCourse: any): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     // Convert courseId to ObjectId if it's a string
     const courseId = typeof subCourse.courseId === 'string' ? new ObjectId(subCourse.courseId) : subCourse.courseId
@@ -463,25 +465,25 @@ export class Database {
 
   async getAllSubCourses(): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("sub_courses").find({}).toArray()
   }
 
   async getSubCoursesByCourseId(courseId: ObjectId): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("sub_courses").find({ courseId: courseId }).toArray()
   }
 
   async getSubCourseById(id: ObjectId): Promise<any | null> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("sub_courses").findOne({ _id: id })
   }
 
   async updateSubCourse(id: ObjectId, updates: any): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db
       .collection("sub_courses")
       .updateOne({ _id: id }, { $set: { ...updates, updatedAt: new Date() } })
@@ -490,7 +492,7 @@ export class Database {
 
   async deleteSubCourse(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("sub_courses").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
@@ -498,7 +500,7 @@ export class Database {
   // Lesson operations
   async createLesson(lesson: any): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("lessons").insertOne({
       ...lesson,
       createdAt: new Date(),
@@ -509,13 +511,13 @@ export class Database {
 
   async getAllLessons(): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("lessons").find({}).toArray()
   }
 
   async updateLesson(id: ObjectId, updates: any): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db
       .collection("lessons")
       .updateOne({ _id: id }, { $set: { ...updates, updatedAt: new Date() } })
@@ -524,7 +526,7 @@ export class Database {
 
   async deleteLesson(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("lessons").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
@@ -532,7 +534,7 @@ export class Database {
   // Media Grid Layout operations
   async getMediaGridLayout(): Promise<any> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     const layout = await db.collection("media_grid_layouts").findOne({})
     
@@ -570,7 +572,7 @@ export class Database {
 
   async updateMediaGridLayout(layout: any): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     const result = await db.collection("media_grid_layouts").updateOne(
       {}, // Update the first (and only) document
@@ -584,7 +586,7 @@ export class Database {
   // Media operations
   async getAllMediaItems(): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const mediaItems = await db.collection("media_items").find({}).toArray()
     
     return mediaItems
@@ -592,7 +594,7 @@ export class Database {
 
   async createMediaItem(mediaItem: any): Promise<ObjectId> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("media_items").insertOne({
       ...mediaItem,
       createdAt: new Date(),
@@ -603,7 +605,7 @@ export class Database {
 
   async updateMediaItem(id: ObjectId, updates: any): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db
       .collection("media_items")
       .updateOne({ _id: id }, { $set: { ...updates, updatedAt: new Date() } })
@@ -612,7 +614,7 @@ export class Database {
 
   async deleteMediaItem(id: ObjectId): Promise<boolean> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     const result = await db.collection("media_items").deleteOne({ _id: id })
     return result.deletedCount > 0
   }
@@ -620,7 +622,7 @@ export class Database {
   // Database Statistics
   async getDatabaseStats() {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     
     try {
       // Get database stats
@@ -685,7 +687,7 @@ export class Database {
   }): Promise<string> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       const result = await db.collection("videos").insertOne({
         ...videoData,
@@ -703,7 +705,7 @@ export class Database {
   async getVideoById(videoId: string): Promise<any> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       return await db.collection("videos").findOne({ _id: new ObjectId(videoId) })
     } catch (error) {
@@ -715,7 +717,7 @@ export class Database {
   async updateVideoStatus(videoId: string, status: string, metadata?: any): Promise<boolean> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       const updateData: any = { 
         status, 
@@ -740,13 +742,13 @@ export class Database {
 
   async getLessonsBySubCourseId(subCourseId: ObjectId): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     return await db.collection("lessons").find({ subCourseId: subCourseId }).toArray()
   }
 
   async getLessonsByCourseId(courseId: ObjectId): Promise<any[]> {
     const client = await this.getClient()
-    const db = client.db("new-era-platform")
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
     // Get all sub-courses for this course first
     const subCourses = await db.collection("subcourses").find({ courseId: courseId }).toArray()
     const subCourseIds = subCourses.map((sc: any) => sc._id)
@@ -761,7 +763,7 @@ export class Database {
   async getRecentActivities() {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       // Get recent activities from different collections
       const [recentUsers, recentCourses, recentPayments, recentEnrollments] = await Promise.all([
@@ -880,7 +882,7 @@ export class Database {
   async markLessonComplete(userId: ObjectId, courseId: ObjectId, lessonId: ObjectId): Promise<boolean> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       // Check if progress record exists
       const existingProgress = await db.collection("userProgress").findOne({
@@ -926,7 +928,7 @@ export class Database {
   async getUserProgress(userId: ObjectId, courseId: ObjectId): Promise<any> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       // Get all completed lessons for this user and course
       const completedLessons = await db.collection("userProgress")
@@ -977,7 +979,7 @@ export class Database {
   async getCompletedLessons(userId: ObjectId): Promise<ObjectId[]> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       const completedLessons = await db.collection("userProgress")
         .find({ userId, isCompleted: true })
@@ -994,7 +996,7 @@ export class Database {
   async addCourseToUser(userId: ObjectId, courseId: ObjectId): Promise<boolean> {
     try {
       const client = await this.getClient()
-      const db = client.db("new-era-platform")
+      const db = client.db(process.env.MONGODB_DB || "new-era-platform")
       
       const result = await db.collection("users").updateOne(
         { _id: userId },
