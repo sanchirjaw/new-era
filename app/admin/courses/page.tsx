@@ -361,6 +361,9 @@ export default function AdminCourses() {
   const handleCreateSubCourse = async () => {
     if (!selectedCourse) return
     try {
+      // Auto-calculate next order so reordering works correctly
+      const existingSubs = subCourses.filter(sc => sc.courseId === selectedCourse._id)
+      const nextOrder = existingSubs.length > 0 ? Math.max(...existingSubs.map(sc => sc.order)) + 1 : 1
       const res = await fetch("/api/admin/sub-courses", {
         method: "POST",
         credentials: 'include',
@@ -369,7 +372,7 @@ export default function AdminCourses() {
           title: subCourseFormData.title,
           description: subCourseFormData.description,
           courseId: selectedCourse._id,
-          order: subCourseFormData.order,
+          order: nextOrder,
           isActive: subCourseFormData.isActive
         })
       })
