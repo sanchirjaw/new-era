@@ -59,17 +59,27 @@ export async function DELETE(
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
     const db = await connectDB()
-    // Try ObjectId first, fall back to string _id for legacy data
+    const dbName = db.databaseName
+    const totalCount = await db.collection("sub_courses").countDocuments()
+
+    // Try findOne first to confirm document exists
+    let found: any = null
+    try { found = await db.collection("sub_courses").findOne({ _id: new ObjectId(id) }) } catch {}
+    if (!found) { found = await db.collection("sub_courses").findOne({ _id: id as any }) }
+
+    if (!found) {
+      return NextResponse.json({
+        error: "Sub-course not found",
+        debug: { id, dbName, totalCount }
+      }, { status: 404 })
+    }
+
+    // Document found — now delete it
     let result
-    try {
-      result = await db.collection("sub_courses").deleteOne({ _id: new ObjectId(id) })
-    } catch {
-      result = { deletedCount: 0 }
-    }
-    if (result.deletedCount === 0) {
-      result = await db.collection("sub_courses").deleteOne({ _id: id as any })
-    }
-    if (result.deletedCount === 0) return NextResponse.json({ error: "Sub-course not found" }, { status: 404 })
+    try { result = await db.collection("sub_courses").deleteOne({ _id: found._id }) }
+    catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }) }
+
+    if (result.deletedCount === 0) return NextResponse.json({ error: "Delete failed unexpectedly" }, { status: 500 })
     return NextResponse.json({ message: "Sub-course deleted successfully" })
   } catch (e: any) {
     console.error("DELETE sub-course error:", e)
