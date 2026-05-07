@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState, useRef } from "react"
 import dynamic from "next/dynamic"
@@ -504,10 +504,10 @@ export default function AdminCourses() {
   }
 
   const handleCreateLesson = async () => {
-    if (!selectedSubCourse || !lessonFormData.videoFile) {
+    if (!selectedSubCourse) {
       toast({
         title: "Мэдээлэл дутуу байна",
-        description: "Дэд хичээл сонгож, видео файл оруулна уу.",
+        description: "Дэд хичээл сонгоно уу.",
         variant: "destructive",
       })
       return
@@ -515,15 +515,10 @@ export default function AdminCourses() {
     if (isCreatingLesson) return
 
     setIsCreatingLesson(true)
-    setUploadStatus('initializing')
-    setUploadProgress(0)
     setUploadError('')
-    setUploadStatusMsg('Bunny.net рүү холбогдож байна...')
+
 
     const videoFile = lessonFormData.videoFile
-    const fileSize = videoFile.size
-    const fileName = videoFile.name
-    const contentType = videoFile.type
     const existingLessons = lessons.filter(l => l.subCourseId === selectedSubCourse._id)
     const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
     const formDataToSave = { ...lessonFormData, order: nextOrder }
@@ -532,50 +527,62 @@ export default function AdminCourses() {
     setIsUploadingInBackground(true)
 
     try {
-      // Step 1: Initialize upload on Bunny.net
-      const tusInitResponse = await fetch('/api/admin/upload/tus', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Upload-Length': fileSize.toString(),
-          'Upload-Metadata': `filename ${encodeURIComponent(fileName)},contentType ${encodeURIComponent(contentType)}`,
-          'Tus-Resumable': '1.0.0'
-        },
-        body: JSON.stringify({ filename: fileName, fileSize, contentType })
-      })
+      let bunnyVideoId = ''
+      let videoUrl = ''
 
-      if (!tusInitResponse.ok) {
-        const errorData = await tusInitResponse.json()
-        throw new Error(errorData.error || 'Холболт амжилтгүй боллоо')
-      }
+      if (videoFile) {
+        setUploadStatus('initializing')
+        setUploadProgress(0)
+        setUploadStatusMsg('Bunny.net рүү холбогдож байна...')
 
-      const tusInitResult = await tusInitResponse.json()
-      if (!tusInitResult.success || !tusInitResult.uploadUrl || !tusInitResult.videoId) {
-        throw new Error('Upload URL авч чадсангүй')
-      }
+        const fileSize = videoFile.size
+        const fileName = videoFile.name
+        const contentType = videoFile.type
 
-      // Step 2: Upload file with progress tracking
-      setUploadStatus('uploading')
-      setUploadProgress(0)
-      setUploadStatusMsg(`Видео байршуулж байна...`)
+        const tusInitResponse = await fetch('/api/admin/upload/tus', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Upload-Length': fileSize.toString(),
+            'Upload-Metadata': `filename ${encodeURIComponent(fileName)},contentType ${encodeURIComponent(contentType)}`,
+            'Tus-Resumable': '1.0.0'
+          },
+          body: JSON.stringify({ filename: fileName, fileSize, contentType })
+        })
 
-      await uploadFileWithProgress(
-        tusInitResult.uploadUrl,
-        { ...tusInitResult.uploadHeaders, 'Content-Type': contentType },
-        videoFile,
-        (pct) => {
-          setUploadProgress(pct)
-          setUploadStatusMsg(`Видео байршуулж байна... ${pct}%`)
+        if (!tusInitResponse.ok) {
+          const errorData = await tusInitResponse.json()
+          throw new Error(errorData.error || 'Холболт амжилтгүй боллоо')
         }
-      )
 
-      // Step 3: Create lesson in DB
+        const tusInitResult = await tusInitResponse.json()
+        if (!tusInitResult.success || !tusInitResult.uploadUrl || !tusInitResult.videoId) {
+          throw new Error('Upload URL авч чадсангүй')
+        }
+
+        setUploadStatus('uploading')
+        setUploadProgress(0)
+        setUploadStatusMsg('Видео байршуулж байна...')
+
+        await uploadFileWithProgress(
+          tusInitResult.uploadUrl,
+          { ...tusInitResult.uploadHeaders, 'Content-Type': contentType },
+          videoFile,
+          (pct) => {
+            setUploadProgress(pct)
+            setUploadStatusMsg(`Видео байршуулж байна... ${pct}%`)
+          }
+        )
+
+        bunnyVideoId = tusInitResult.videoId
+        videoUrl = `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}`
+      }
+
       setUploadStatus('creating')
       setUploadProgress(100)
-      setUploadStatusMsg('Хичээл үүсгэж байна...')
+      setUploadStatusMsg('Хичээл хадгалж байна...')
 
-      // Upload thumbnail if provided
       let thumbnailUrl = ''
       if (formDataToSave.thumbnailFile) {
         try {
@@ -608,8 +615,8 @@ export default function AdminCourses() {
           subCourseId: subCourseIdToSave,
           order: formDataToSave.order || 1,
           isPreview: formDataToSave.isPreview || false,
-          bunnyVideoId: tusInitResult.videoId,
-          videoUrl: `https://iframe.mediadelivery.net/embed/651322/${tusInitResult.videoId}`,
+          bunnyVideoId,
+          videoUrl,
           ...(thumbnailUrl && { thumbnailUrl })
         })
       })
@@ -1860,13 +1867,16 @@ export default function AdminCourses() {
             <div className="py-6 space-y-6">
               {/* Steps */}
               <div className="space-y-3">
-                {[
+                {(lessonFormData.videoFile ? [
                   { key: 'initializing', label: 'Холболт үүсгэж байна', desc: 'Bunny.net рүү холбогдож байна' },
                   { key: 'uploading',    label: 'Видео байршуулж байна', desc: lessonFormData.videoFile ? `${lessonFormData.videoFile.name} · ${(lessonFormData.videoFile.size / 1024 / 1024).toFixed(1)} MB` : '' },
                   { key: 'creating',     label: 'Хичээл хадгалж байна',  desc: 'Мэдээллийн санд нэмж байна' },
                   { key: 'done',         label: 'Амжилттай!',            desc: 'Хичээл нэмэгдлээ' },
-                ].map((step, i) => {
-                  const statuses = ['initializing', 'uploading', 'creating', 'done']
+                ] : [
+                  { key: 'creating', label: 'Хичээл хадгалж байна', desc: 'Мэдээллийн санд нэмж байна' },
+                  { key: 'done',     label: 'Амжилттай!',            desc: 'Хичээл нэмэгдлээ' },
+                ]).map((step, i) => {
+                  const statuses = lessonFormData.videoFile ? ['initializing', 'uploading', 'creating', 'done'] : ['creating', 'done']
                   const currentIdx = statuses.indexOf(uploadStatus)
                   const stepIdx = statuses.indexOf(step.key)
                   const isDone = stepIdx < currentIdx || uploadStatus === 'done'
@@ -1984,7 +1994,7 @@ export default function AdminCourses() {
 
               {/* Video file drop zone */}
               <div>
-                <Label>Видео файл <span className="text-red-500">*</span></Label>
+                <Label>Видео файл <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
                 {lessonFormData.videoFile ? (
                   <div className="mt-1 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
@@ -2090,10 +2100,10 @@ export default function AdminCourses() {
               <Button
                 onClick={handleCreateLesson}
                 className="w-full h-11 text-base font-semibold"
-                disabled={isCreatingLesson || !lessonFormData.videoFile || !lessonFormData.title}
+                disabled={isCreatingLesson || !lessonFormData.title}
               >
-                <Upload className="w-4 h-4 mr-2" />
-                Байршуулах
+                {lessonFormData.videoFile ? <Upload className="w-4 h-4 mr-2" /> : <BookOpen className="w-4 h-4 mr-2" />}
+                {lessonFormData.videoFile ? 'Байршуулах' : 'Хичээл нэмэх'}
               </Button>
             </div>
           )}

@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = await request.json()
-    const { title, description, subCourseId, order, isPreview, bunnyVideoId, videoUrl } = body
+    const { title, description, content, subCourseId, order, isPreview, bunnyVideoId, videoUrl, thumbnailUrl } = body
 
-    if (!title || !subCourseId || !bunnyVideoId || !videoUrl) {
+    if (!title || !subCourseId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
@@ -26,13 +26,15 @@ export async function POST(request: NextRequest) {
     const lessonId = await db.createLesson({
       title,
       description: description || "",
+      content: content || "",
       subCourseId: objectId,
       order: order || 1,
       isPreview: isPreview || false,
-      videoUrl,
+      videoUrl: videoUrl || "",
       duration: 0,
-      bunnyVideoId,
-      tusUploadId: ""
+      bunnyVideoId: bunnyVideoId || "",
+      tusUploadId: "",
+      ...(thumbnailUrl && { thumbnailUrl })
     })
 
     return NextResponse.json({ message: "Lesson created successfully", lessonId }, { status: 201 })
