@@ -1153,9 +1153,7 @@ export default function AdminCourses() {
                         <Edit className="h-4 w-4" />
                       </Button>
 
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteCourse(course._id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteCourse(course._id)} className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 px-3 py-2"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
 
@@ -1275,9 +1273,7 @@ export default function AdminCourses() {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleDeleteSubCourse(subCourse._id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleDeleteSubCourse(subCourse._id)} className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 px-3 py-2"><Trash2 className="h-4 w-4" /></Button>
                                 </div>
                               </div>
 
@@ -1429,7 +1425,7 @@ export default function AdminCourses() {
                                               </button>
                                               <button
                                                 onClick={() => handleDeleteLesson(lesson._id)}
-                                                className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                                                className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 transition-colors"
                                                 title="Устгах"
                                               >
                                                 <Trash2 className="w-3.5 h-3.5" />
