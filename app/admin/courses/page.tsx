@@ -343,8 +343,7 @@ export default function AdminCourses() {
   }
 
   const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm("Delete course?")) return
-    try {
+        try {
       const res = await fetch(`/api/admin/courses/${courseId}`, { 
         method: "DELETE",
         credentials: 'include'
@@ -394,8 +393,7 @@ export default function AdminCourses() {
   }
 
   const handleDeleteSubCourse = async (subCourseId: string) => {
-    if (!confirm("Delete sub-course?")) return
-    try {
+        try {
       const res = await fetch(`/api/admin/sub-courses/${subCourseId}`, { 
         method: "DELETE",
         credentials: 'include'
@@ -695,8 +693,7 @@ export default function AdminCourses() {
   }
 
   const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm("Delete lesson?")) return
-    try {
+        try {
       const res = await fetch(`/api/admin/lessons/${lessonId}`, { 
         method: "DELETE",
         credentials: 'include'
