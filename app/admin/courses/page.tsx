@@ -2015,7 +2015,7 @@ export default function AdminCourses() {
           }
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Video className="w-5 h-5 text-blue-600" />
@@ -2109,7 +2109,7 @@ export default function AdminCourses() {
             </div>
           ) : (
             /* Normal form */
-            <div className="space-y-4 pt-1">
+            <div className="space-y-4 pt-1 overflow-y-auto flex-1 pr-1">
               {uploadStatus === 'error' && (
                 <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -2154,7 +2154,7 @@ export default function AdminCourses() {
                       Upload хийсэн видео олдсонгүй
                     </div>
                   ) : (
-                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 border rounded-lg p-1.5 bg-muted/20">
                       {libraryLessons.map(lesson => (
                         <button
                           key={lesson._id}
@@ -2212,21 +2212,6 @@ export default function AdminCourses() {
                 />
               </div>
 
-              {/* Rich text content editor */}
-              <div data-color-mode="light">
-                <Label>Хичээлийн агуулга <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
-                <div className="mt-1 border rounded-md overflow-hidden">
-                  <MDEditor
-                    value={lessonContent}
-                    onChange={(val) => setLessonContent(val || '')}
-                    height={220}
-                    preview="edit"
-                    hideToolbar={false}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Markdown дэмжинэ: **bold**, *italic*, - жагсаалт, гэх мэт</p>
-              </div>
-
               {/* Video file drop zone — only in upload mode */}
               {lessonMode === "upload" && <div>
                 <Label>Видео файл <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
@@ -2270,6 +2255,21 @@ export default function AdminCourses() {
                   </label>
                 )}
               </div>}
+
+              {/* Rich text content editor */}
+              <div data-color-mode="light">
+                <Label>Хичээлийн агуулга <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
+                <div className="mt-1 border rounded-md overflow-hidden">
+                  <MDEditor
+                    value={lessonContent}
+                    onChange={(val) => setLessonContent(val || '')}
+                    height={220}
+                    preview="edit"
+                    hideToolbar={false}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Markdown дэмжинэ: **bold**, *italic*, - жагсаалт, гэх мэт</p>
+              </div>
 
               {/* Thumbnail */}
               <div>
