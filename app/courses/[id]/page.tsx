@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Star, Users, Play, ChevronDown, ChevronRight, BookOpen, Clock } from "lucide-react"
+import { Star, Users, Play, ChevronDown, ChevronRight, BookOpen, Clock, Lock } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { CourseEnrollmentClient } from "./course-enrollment-client"
 import { notFound } from "next/navigation"
@@ -271,21 +271,71 @@ export default function CoursePage({ params }: PageProps) {
                             )}
                           </div>
                         ) : (
-                          // Static lesson list for non-enrolled users
-                          course.lessons.map((lesson, index) => (
-                            <div key={lesson._id || index} className="flex items-center gap-3 p-3 rounded-lg border opacity-60">
-                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-medium text-primary">{index + 1}</span>
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-foreground">{lesson.title}</h4>
-                                <p className="text-sm text-muted-foreground">{lesson.description}</p>
-                              </div>
-                              {lesson.isPreview && (
-                                <Badge variant="secondary">Үнэгүй</Badge>
-                              )}
+                          // Static syllabus for non-enrolled users — grouped by sub-course
+                          course.subCourses && course.subCourses.length > 0 ? (
+                            <div className="space-y-3">
+                              {course.subCourses.map((subCourse, scIdx) => {
+                                const subCourseLessons = (course.lessons || []).filter(
+                                  l => l.subCourseId === subCourse._id || l.subCourseId === String(subCourse._id)
+                                )
+                                return (
+                                  <div key={subCourse._id || scIdx} className="border rounded-lg overflow-hidden">
+                                    {/* Sub-course header */}
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-muted/40">
+                                      <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-foreground text-sm">{subCourse.title}</p>
+                                        <p className="text-xs text-muted-foreground">{subCourseLessons.length} хичээл</p>
+                                      </div>
+                                    </div>
+                                    {/* Lessons inside */}
+                                    {subCourseLessons.length > 0 && (
+                                      <div className="divide-y divide-border/50">
+                                        {subCourseLessons
+                                          .sort((a, b) => a.order - b.order)
+                                          .map((lesson, lIdx) => (
+                                            lesson.isPreview ? (
+                                              <Link
+                                                key={lesson._id || lIdx}
+                                                href={`/courses/${course._id}/learn?lesson=${lesson._id}`}
+                                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary/5 transition-colors group"
+                                              >
+                                                <Play className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                <span className="flex-1 text-sm text-foreground group-hover:text-primary transition-colors">{lesson.title}</span>
+                                                <Badge variant="secondary" className="text-xs shrink-0">Үнэгүй</Badge>
+                                              </Link>
+                                            ) : (
+                                              <div key={lesson._id || lIdx} className="flex items-center gap-3 px-4 py-2.5 opacity-60">
+                                                <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                                <span className="flex-1 text-sm text-foreground">{lesson.title}</span>
+                                              </div>
+                                            )
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
-                          ))
+                          ) : (
+                            // Fallback: flat lesson list if no sub-courses
+                            <div className="space-y-2">
+                              {course.lessons.map((lesson, index) => (
+                                <div key={lesson._id || index} className="flex items-center gap-3 p-3 rounded-lg border opacity-60">
+                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-medium text-primary">{index + 1}</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-foreground">{lesson.title}</h4>
+                                    <p className="text-sm text-muted-foreground">{lesson.description}</p>
+                                  </div>
+                                  {lesson.isPreview && (
+                                    <Badge variant="secondary">Үнэгүй</Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )
                         )
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">
