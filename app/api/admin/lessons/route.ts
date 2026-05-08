@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/admin/lessons?subCourseId=...
+// GET /api/admin/lessons?subCourseId=...  OR  ?library=true
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get("admin-token")?.value
@@ -55,6 +55,26 @@ export async function GET(request: NextRequest) {
     if (!user || user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { searchParams } = new URL(request.url)
+    const db = await connectDB()
+
+    // Library mode: return all lessons that have a bunnyVideoId (for reuse)
+    if (searchParams.get("library") === "true") {
+      const rawLessons = await db.collection("lessons")
+        .find({ bunnyVideoId: { $exists: true, $ne: "" } })
+        .sort({ createdAt: -1 })
+        .toArray()
+      const lessons = rawLessons.map(l => ({
+        _id: l._id.toString(),
+        title: l.title,
+        bunnyVideoId: l.bunnyVideoId,
+        videoUrl: l.videoUrl || "",
+        thumbnailUrl: l.thumbnailUrl || "",
+        duration: l.duration || 0,
+        subCourseId: l.subCourseId?.toString() || "",
+      }))
+      return NextResponse.json({ lessons })
+    }
+
     const subCourseId = searchParams.get("subCourseId")
     if (!subCourseId) return NextResponse.json({ error: "subCourseId required" }, { status: 400 })
 
@@ -62,13 +82,11 @@ export async function GET(request: NextRequest) {
     try { subCourseObjectId = new ObjectId(subCourseId) }
     catch { return NextResponse.json({ error: "Invalid subCourseId" }, { status: 400 }) }
 
-    const db = await connectDB()
     const rawLessons = await db.collection("lessons")
       .find({ subCourseId: subCourseObjectId })
       .sort({ order: 1 })
       .toArray()
 
-    // Ensure _id is always a plain string
     const lessons = rawLessons.map(l => ({
       ...l,
       _id: l._id.toString(),

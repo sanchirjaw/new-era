@@ -118,6 +118,10 @@ export default function AdminCourses() {
   const [editLessonThumbnailPreview, setEditLessonThumbnailPreview] = useState<string | null>(null)
   const [lessonContent, setLessonContent] = useState<string>("")
   const [editLessonContent, setEditLessonContent] = useState<string>("")
+  const [lessonMode, setLessonMode] = useState<"upload" | "library">("upload")
+  const [libraryLessons, setLibraryLessons] = useState<any[]>([])
+  const [libraryLoading, setLibraryLoading] = useState(false)
+  const [selectedLibraryLesson, setSelectedLibraryLesson] = useState<any>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: string; id: string; name: string }>({ open: false, type: "", id: "", name: "" })
 
 
@@ -227,6 +231,20 @@ export default function AdminCourses() {
       console.error("Failed to load data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchLibrary = async () => {
+    if (libraryLoading) return
+    setLibraryLoading(true)
+    try {
+      const res = await fetch('/api/admin/lessons?library=true', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setLibraryLessons(data.lessons || [])
+      }
+    } catch {} finally {
+      setLibraryLoading(false)
     }
   }
 
@@ -521,7 +539,7 @@ export default function AdminCourses() {
     setUploadError('')
 
 
-    const videoFile = lessonFormData.videoFile
+    const videoFile = lessonMode === "upload" ? lessonFormData.videoFile : null
     const existingLessons = lessons.filter(l => l.subCourseId === selectedSubCourse._id)
     const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map(l => l.order)) + 1 : 1
     const formDataToSave = { ...lessonFormData, order: nextOrder }
@@ -530,8 +548,8 @@ export default function AdminCourses() {
     setIsUploadingInBackground(true)
 
     try {
-      let bunnyVideoId = ''
-      let videoUrl = ''
+      let bunnyVideoId = lessonMode === "library" ? (selectedLibraryLesson?.bunnyVideoId || '') : ''
+      let videoUrl = lessonMode === "library" ? (selectedLibraryLesson?.videoUrl || '') : ''
 
       if (videoFile) {
         setUploadStatus('initializing')
@@ -586,7 +604,7 @@ export default function AdminCourses() {
       setUploadProgress(100)
       setUploadStatusMsg('Хичээл хадгалж байна...')
 
-      let thumbnailUrl = ''
+      let thumbnailUrl = lessonMode === "library" ? (selectedLibraryLesson?.thumbnailUrl || '') : ''
       if (formDataToSave.thumbnailFile) {
         try {
           setUploadStatusMsg('Зураг байршуулж байна...')
@@ -1991,6 +2009,8 @@ export default function AdminCourses() {
               setUploadError('')
               setUploadStatusMsg('')
               setLessonThumbnailPreview(null)
+              setLessonMode("upload")
+              setSelectedLibraryLesson(null)
             }
           }
         }}
@@ -2100,6 +2120,75 @@ export default function AdminCourses() {
                 </div>
               )}
 
+              {/* Mode toggle */}
+              <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border">
+                <button
+                  type="button"
+                  onClick={() => setLessonMode("upload")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-medium rounded-md transition-all ${lessonMode === "upload" ? "bg-white shadow-sm text-blue-600 border border-blue-100" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Шинэ upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLessonMode("library"); fetchLibrary() }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-medium rounded-md transition-all ${lessonMode === "library" ? "bg-white shadow-sm text-blue-600 border border-blue-100" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Library-с сонгох
+                </button>
+              </div>
+
+              {/* Library selector */}
+              {lessonMode === "library" && (
+                <div className="space-y-2">
+                  <Label>Видео сонгох <span className="text-red-500">*</span></Label>
+                  {libraryLoading ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2" />
+                      Ачаалж байна...
+                    </div>
+                  ) : libraryLessons.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+                      Upload хийсэн видео олдсонгүй
+                    </div>
+                  ) : (
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                      {libraryLessons.map(lesson => (
+                        <button
+                          key={lesson._id}
+                          type="button"
+                          onClick={() => setSelectedLibraryLesson(lesson)}
+                          className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left ${
+                            selectedLibraryLesson?._id === lesson._id
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-100 hover:border-gray-300 hover:bg-muted/40"
+                          }`}
+                        >
+                          {lesson.thumbnailUrl ? (
+                            <img src={lesson.thumbnailUrl} alt="" className="w-14 h-9 object-cover rounded border shrink-0" />
+                          ) : (
+                            <div className="w-14 h-9 bg-muted rounded border flex items-center justify-center shrink-0">
+                              <Video className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{lesson.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {lesson.duration ? `${Math.floor(lesson.duration / 60)}:${String(lesson.duration % 60).padStart(2, "0")} мин` : "Видео"}
+                            </p>
+                          </div>
+                          {selectedLibraryLesson?._id === lesson._id && (
+                            <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="lessonTitle">Гарчиг <span className="text-red-500">*</span></Label>
                 <Input
@@ -2138,8 +2227,8 @@ export default function AdminCourses() {
                 <p className="text-xs text-muted-foreground mt-1">Markdown дэмжинэ: **bold**, *italic*, - жагсаалт, гэх мэт</p>
               </div>
 
-              {/* Video file drop zone */}
-              <div>
+              {/* Video file drop zone — only in upload mode */}
+              {lessonMode === "upload" && <div>
                 <Label>Видео файл <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
                 {lessonFormData.videoFile ? (
                   <div className="mt-1 flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -2180,7 +2269,7 @@ export default function AdminCourses() {
                     />
                   </label>
                 )}
-              </div>
+              </div>}
 
               {/* Thumbnail */}
               <div>
@@ -2246,10 +2335,10 @@ export default function AdminCourses() {
               <Button
                 onClick={handleCreateLesson}
                 className="w-full h-11 text-base font-semibold"
-                disabled={isCreatingLesson || !lessonFormData.title}
+                disabled={isCreatingLesson || !lessonFormData.title || (lessonMode === "library" && !selectedLibraryLesson)}
               >
-                {lessonFormData.videoFile ? <Upload className="w-4 h-4 mr-2" /> : <BookOpen className="w-4 h-4 mr-2" />}
-                {lessonFormData.videoFile ? 'Байршуулах' : 'Хичээл нэмэх'}
+                {lessonMode === "upload" && lessonFormData.videoFile ? <Upload className="w-4 h-4 mr-2" /> : <BookOpen className="w-4 h-4 mr-2" />}
+                {lessonMode === "upload" && lessonFormData.videoFile ? 'Байршуулах' : 'Хичээл нэмэх'}
               </Button>
             </div>
           )}
