@@ -33,7 +33,7 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
         try {
             // Start checking immediately - no initial delay
             let attempts = 0
-            const maxAttempts = 10 // Total 5 seconds max (10 * 500ms)
+            const maxAttempts = 30 // Total 15 seconds max (30 * 500ms)
 
             while (attempts < maxAttempts) {
                 const response = await fetch('/api/payments/verify-and-enroll', {
@@ -42,6 +42,7 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                         'Content-Type': 'application/json',
                         'Cache-Control': 'no-cache',
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         courseId: course._id
                     })
@@ -49,24 +50,23 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
 
                 if (response.ok) {
                     const data = await response.json()
-                                        if (data.enrolled) {
+                    if (data.enrolled) {
                         // Refresh user data to get latest enrollment
                         await refreshUser()
                         setCheckingPayment(false)
-                        
+
                         // Remove the payment_success parameter to prevent infinite loop
                         const url = new URL(window.location.href)
                         url.searchParams.delete('payment_success')
                         url.searchParams.delete('t')
                         window.history.replaceState({}, '', url.toString())
-                        
+
                         return // Success, exit early
                     }
                 }
 
                 attempts++
                 if (attempts < maxAttempts) {
-                    // Wait 500ms before next attempt
                     await new Promise(resolve => setTimeout(resolve, 500))
                 }
             }

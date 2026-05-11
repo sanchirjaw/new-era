@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb"
 import { verifyToken } from "@/lib/auth-server"
 import { db } from "@/lib/database"
 import { auth } from "@/auth"
+import { bylService } from "@/lib/byl"
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +47,62 @@ export async function POST(request: NextRequest) {
     })
 
     if (!payment) {
-      return NextResponse.json({ error: "No completed payment found" }, { status: 404 })
+      // No completed payment — check if there's a pending Byl payment and verify it directly
+      const pendingPayment = await db_conn.collection("payments").findOne({
+        userId: new ObjectId(user.id),
+        courseId: new ObjectId(courseId),
+        status: "pending"
+      })
+
+      if (pendingPayment) {
+        let bylPaid = false
+
+        // Check Byl checkout status
+        if (pendingPayment.bylCheckoutId) {
+          try {
+            const checkout = await bylService.getCheckout(pendingPayment.bylCheckoutId)
+            if (checkout.status === "complete") bylPaid = true
+          } catch {}
+        }
+
+        // Check Byl invoice status
+        if (!bylPaid && pendingPayment.bylInvoiceId) {
+          try {
+            const invoice = await bylService.getInvoice(pendingPayment.bylInvoiceId)
+            if (invoice.status === "paid") bylPaid = true
+          } catch {}
+        }
+
+        if (!bylPaid) {
+          return NextResponse.json({ error: "No completed payment found", enrolled: false }, { status: 404 })
+        }
+
+        // Mark payment as completed
+        await db_conn.collection("payments").updateOne(
+          { _id: pendingPayment._id },
+          { $set: { status: "completed", updatedAt: new Date() } }
+        )
+
+        // Use the now-completed payment for enrollment below
+        const course2 = await db_conn.collection("courses").findOne({ _id: new ObjectId(courseId) })
+        const enrolledAt2 = new Date()
+        const expiresAt2 = course2?.accessDurationMonths
+          ? new Date(enrolledAt2.getTime() + course2.accessDurationMonths * 30 * 24 * 60 * 60 * 1000)
+          : null
+
+        await db_conn.collection("enrollments").updateOne(
+          { userId: new ObjectId(user.id), courseId: new ObjectId(courseId) },
+          { $set: { isActive: true, expiresAt: expiresAt2, enrolledAt: enrolledAt2 } },
+          { upsert: true }
+        )
+        await db_conn.collection("users").updateOne(
+          { _id: new ObjectId(user.id) },
+          { $addToSet: { enrolledCourses: courseId } }
+        )
+        return NextResponse.json({ message: "Enrollment created via direct Byl check", enrolled: true })
+      }
+
+      return NextResponse.json({ error: "No completed payment found", enrolled: false }, { status: 404 })
     }
 
     // Look up course to get accessDurationMonths
