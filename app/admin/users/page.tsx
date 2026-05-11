@@ -286,6 +286,32 @@ export default function AdminUsers() {
     return courses.filter(course => user.enrolledCourses.includes(course._id))
   }
 
+  const isOldNoAccess = (user: User) => {
+    if (user.role === "admin") return false
+    if ((user.enrolledCourses?.length || 0) > 0) return false
+    if (!user.createdAt) return false
+    const months = (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30)
+    return months >= 3
+  }
+
+  const sendReminderEmails = async () => {
+    const targets = users.filter(u => isOldNoAccess(u) && u.email)
+    if (targets.length === 0) return alert("Илгээх хэрэглэгч байхгүй байна")
+    if (!confirm(`${targets.length} хэрэглэгчид сануулга имэйл илгээх үү?`)) return
+    try {
+      const res = await fetch("/api/admin/send-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userIds: targets.map(u => u._id) })
+      })
+      const data = await res.json()
+      toast({ title: "Амжилттай", description: `${data.sent} хэрэглэгчид имэйл илгээлээ` })
+    } catch {
+      toast({ title: "Алдаа", description: "Имэйл илгээхэд алдаа гарлаа", variant: "destructive" })
+    }
+  }
+
   const filteredUsers = users
     .filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -395,6 +421,16 @@ export default function AdminUsers() {
                 className="pl-10"
               />
             </div>
+            {users.filter(u => isOldNoAccess(u)).length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-orange-600 border-orange-200 hover:bg-orange-50 whitespace-nowrap"
+                onClick={sendReminderEmails}
+              >
+                📧 {users.filter(u => isOldNoAccess(u)).length}-д сануулга
+              </Button>
+            )}
             {users.filter(u => u.role !== "admin" && (u.enrolledCourses?.length || 0) === 0).length > 0 && (
               <Button
                 variant="outline"
@@ -428,6 +464,8 @@ export default function AdminUsers() {
                     ? "border-l-red-500 bg-red-50/40"
                     : hasAccess
                     ? "border-l-green-500 bg-green-50/30"
+                    : isOldNoAccess(user)
+                    ? "border-l-orange-400 bg-orange-50/30"
                     : "border-l-gray-200"
                 }`}>
                   <div className="flex items-center gap-4">
@@ -450,8 +488,8 @@ export default function AdminUsers() {
                           {user.enrolledCourses?.length || 0} courses
                         </Badge>
                         {!hasAccess && user.createdAt && (
-                          <span className="text-xs text-gray-400">
-                            🕐 {new Date(user.createdAt).toLocaleDateString("mn-MN")} нэгдсэн
+                          <span className={`text-xs ${isOldNoAccess(user) ? "text-orange-500 font-medium" : "text-gray-400"}`}>
+                            {isOldNoAccess(user) ? "⚠️" : "🕐"} {new Date(user.createdAt).toLocaleDateString("mn-MN")} нэгдсэн
                           </span>
                         )}
                       </div>
