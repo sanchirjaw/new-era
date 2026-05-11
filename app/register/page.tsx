@@ -179,10 +179,8 @@ function RegisterForm() {
   )
 }
 
+import { redirect } from "next/navigation"
+
 export default function RegisterPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <RegisterForm />
-    </Suspense>
-  )
+  redirect("/login?tab=register")
 }

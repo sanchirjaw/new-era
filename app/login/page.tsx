@@ -14,140 +14,161 @@ import { Header } from "@/components/header"
 import { GoogleButton } from "@/components/ui/google-button"
 import { signIn } from "next-auth/react"
 
-function LoginForm() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const { login } = useAuth()
+function AuthForm() {
+  const [tab, setTab] = useState<"login" | "register">("login")
+
+  // Login state
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState("")
+
+  // Register state
+  const [regName, setRegName] = useState("")
+  const [regEmail, setRegEmail] = useState("")
+  const [regPhone, setRegPhone] = useState("")
+  const [regPassword, setRegPassword] = useState("")
+  const [regLoading, setRegLoading] = useState(false)
+  const [regError, setRegError] = useState("")
+
+  const { login, register } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Check for OAuth error messages
   useEffect(() => {
-    const oauthError = searchParams.get('error')
+    // Switch to register tab if ?tab=register
+    if (searchParams.get("tab") === "register") setTab("register")
+
+    const oauthError = searchParams.get("error")
     if (oauthError) {
-      switch (oauthError) {
-        case 'oauth_not_configured':
-          setError('Google нэвтрэлт тохиргоогүй байна. Админтай холбогдоно уу.')
-          break
-        case 'google_auth_failed':
-          setError('Google баталгаажуулалт амжилтгүй. Дахин оролдоно уу.')
-          break
-        case 'no_code':
-          setError('Баталгаажуулах код хүлээн авагдсангүй. Дахин оролдоно уу.')
-          break
-        case 'no_id_token':
-          setError('Баталгаажуулах токен хүлээн авагдсангүй. Дахин оролдоно уу.')
-          break
-        case 'no_email':
-          setError('Google-ээс имэйл өгөгдсөнгүй. Дахин оролдоно уу.')
-          break
-        case 'user_creation_failed':
-          setError('Хэрэглэгчийн бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.')
-          break
-        case 'oauth_failed':
-          setError('OAuth баталгаажуулалт амжилтгүй. Дахин оролдоно уу.')
-          break
-        default:
-          setError('Баталгаажуулалт амжилтгүй. Дахин оролдоно уу.')
-      }
+      const msg =
+        oauthError === "oauth_not_configured" ? "Google нэвтрэлт тохиргоогүй байна." :
+        oauthError === "google_auth_failed"   ? "Google баталгаажуулалт амжилтгүй." :
+        "Баталгаажуулалт амжилтгүй. Дахин оролдоно уу."
+      setLoginError(msg)
     }
   }, [searchParams])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError("")
-
-    const success = await login(email, password)
+    setLoginLoading(true)
+    setLoginError("")
+    const success = await login(loginEmail, loginPassword)
     if (success) {
-      // Add a small delay to ensure the user state is updated
-      setTimeout(() => {
-        router.push("/")
-      }, 100)
+      setTimeout(() => router.push("/"), 100)
     } else {
-      setError("Имэйл эсвэл нууц үг буруу байна")
+      setLoginError("Имэйл эсвэл нууц үг буруу байна")
     }
-    setLoading(false)
+    setLoginLoading(false)
   }
 
-  const handleGoogleLogin = async () => {
-    setError("")
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setRegLoading(true)
+    setRegError("")
+    if (regPhone && !/^\+?[0-9\s-]{7,15}$/.test(regPhone)) {
+      setRegError("Утасны дугаарын формат буруу байна. Жишээ: +976 9911 2233")
+      setRegLoading(false)
+      return
+    }
+    const success = await register(regName, regEmail, regPassword, regPhone)
+    if (success) {
+      router.push("/")
+    } else {
+      setRegError("Бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.")
+    }
+    setRegLoading(false)
+  }
+
+  const handleGoogle = async () => {
+    setLoginError("")
+    setRegError("")
     try {
-      await signIn("google", { 
-        callbackUrl: "/",
-        redirect: true 
-      })
-    } catch (error) {
-      setError("Google баталгаажуулалт амжилтгүй. Дахин оролдоно уу.")
+      await signIn("google", { callbackUrl: "/", redirect: true })
+    } catch {
+      setLoginError("Google баталгаажуулалт амжилтгүй. Дахин оролдоно уу.")
     }
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex items-center justify-center py-12">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h2
-              className="text-3xl font-black bg-clip-text text-transparent"
-              style={{ backgroundImage: "linear-gradient(135deg, #00E5A0 0%, #7B61FF 100%)" }}
+      <div className="flex items-center justify-center py-10 px-4">
+        <div className="w-full max-w-md">
+
+          {/* Tab switcher */}
+          <div className="flex rounded-xl border overflow-hidden mb-6">
+            <button
+              onClick={() => setTab("login")}
+              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${tab === "login" ? "bg-primary text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
             >
               Нэвтрэх
-            </h2>
-          </div>
-          <form className="space-y-6 rounded-2xl border p-6 md:p-8 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-soft animate-authIn focus-within:shadow-lg transition-all" onSubmit={handleSubmit}>
-            <div>
-              <Label htmlFor="email">Имэйл</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1"
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Нууц үг</Label>
-              <PasswordInput
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1"
-                autoComplete="current-password"
-              />
-            </div>
-            <div className="text-right">
-              <Link href="/reset-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
-                Нууц үгээ мартсан уу?
-              </Link>
-            </div>
-            {error && (
-              <div className="text-red-600 text-sm text-center" aria-live="polite">{error}</div>
-            )}
-            <Button
-              type="submit"
-              className="w-full transition-all hover:scale-[1.01] active:scale-[.99] hover:shadow-md hover:-translate-y-[1px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
-              disabled={loading}
+            </button>
+            <button
+              onClick={() => setTab("register")}
+              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${tab === "register" ? "bg-primary text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
             >
-              {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
-            </Button>
-            <GoogleButton onClick={handleGoogleLogin}>
-              Google-ээр үргэлжлүүлэх
-            </GoogleButton>
-          </form>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Бүртгэл байхгүй юу?{" "}
-              <Link href="/register" className="text-primary hover:text-primary/80 transition-colors">
-                Бүртгүүлэх
-              </Link>
-            </p>
+              Бүртгүүлэх
+            </button>
           </div>
+
+          {/* Login form */}
+          {tab === "login" && (
+            <form
+              className="space-y-5 rounded-2xl border p-6 md:p-8 bg-background/60 backdrop-blur shadow-soft"
+              onSubmit={handleLogin}
+            >
+              <div>
+                <Label htmlFor="login-email">Имэйл</Label>
+                <Input id="login-email" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1" autoComplete="email" />
+              </div>
+              <div>
+                <Label htmlFor="login-password">Нууц үг</Label>
+                <PasswordInput id="login-password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="mt-1" autoComplete="current-password" />
+              </div>
+              <div className="text-right">
+                <Link href="/reset-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
+                  Нууц үгээ мартсан уу?
+                </Link>
+              </div>
+              {loginError && <p className="text-red-600 text-sm text-center">{loginError}</p>}
+              <Button type="submit" className="w-full" disabled={loginLoading}>
+                {loginLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+              </Button>
+              <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+            </form>
+          )}
+
+          {/* Register form */}
+          {tab === "register" && (
+            <form
+              className="space-y-5 rounded-2xl border p-6 md:p-8 bg-background/60 backdrop-blur shadow-soft"
+              onSubmit={handleRegister}
+            >
+              <div>
+                <Label htmlFor="reg-name">Нэр</Label>
+                <Input id="reg-name" type="text" value={regName} onChange={e => setRegName(e.target.value)} required className="mt-1" placeholder="Бүтэн нэрээ оруулна уу" />
+              </div>
+              <div>
+                <Label htmlFor="reg-email">Имэйл</Label>
+                <Input id="reg-email" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} required className="mt-1" autoComplete="email" />
+              </div>
+              <div>
+                <Label htmlFor="reg-phone">Утасны дугаар <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
+                <Input id="reg-phone" type="tel" value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="+976 9911 2233" className="mt-1" autoComplete="tel" />
+              </div>
+              <div>
+                <Label htmlFor="reg-password">Нууц үг</Label>
+                <PasswordInput id="reg-password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required className="mt-1" autoComplete="new-password" />
+              </div>
+              {regError && <p className="text-red-600 text-sm text-center">{regError}</p>}
+              <Button type="submit" className="w-full" disabled={regLoading}>
+                {regLoading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
+              </Button>
+              <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+            </form>
+          )}
+
         </div>
       </div>
     </div>
@@ -157,7 +178,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div>Ачааллаж байна...</div>}>
-      <LoginForm />
+      <AuthForm />
     </Suspense>
   )
 }
