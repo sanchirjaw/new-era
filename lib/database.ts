@@ -63,6 +63,12 @@ export class Database {
     return await db.collection("users").findOne({ email })
   }
 
+  async getUserByPhone(phone: string): Promise<User | null> {
+    const client = await this.getClient()
+    const db = client.db(process.env.MONGODB_DB || "new-era-platform")
+    return await db.collection("users").findOne({ phone })
+  }
+
   async getUserById(id: ObjectId): Promise<User | null> {
     const client = await this.getClient()
     const db = client.db(process.env.MONGODB_DB || "new-era-platform")

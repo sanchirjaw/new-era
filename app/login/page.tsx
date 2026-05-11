@@ -66,8 +66,13 @@ function AuthForm() {
     e.preventDefault()
     setRegLoading(true)
     setRegError("")
+    if (!regEmail && !regPhone) {
+      setRegError("Имэйл эсвэл утасны дугаарын аль нэгийг оруулна уу")
+      setRegLoading(false)
+      return
+    }
     if (regPhone && !/^\+?[0-9\s-]{7,15}$/.test(regPhone)) {
-      setRegError("Утасны дугаарын формат буруу байна. Жишээ: +976 9911 2233")
+      setRegError("Утасны дугаарын формат буруу байна. Жишээ: 99112233")
       setRegLoading(false)
       return
     }
@@ -119,8 +124,8 @@ function AuthForm() {
               onSubmit={handleLogin}
             >
               <div>
-                <Label htmlFor="login-email">Имэйл</Label>
-                <Input id="login-email" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1" autoComplete="email" />
+                <Label htmlFor="login-email">Имэйл эсвэл утасны дугаар</Label>
+                <Input id="login-email" type="text" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1" autoComplete="email" placeholder="example@mail.com эсвэл 99112233" />
               </div>
               <div>
                 <Label htmlFor="login-password">Нууц үг</Label>
@@ -146,19 +151,21 @@ function AuthForm() {
               onSubmit={handleRegister}
             >
               <div>
-                <Label htmlFor="reg-name">Нэр</Label>
+                <Label htmlFor="reg-name">Нэр <span className="text-red-500">*</span></Label>
                 <Input id="reg-name" type="text" value={regName} onChange={e => setRegName(e.target.value)} required className="mt-1" placeholder="Бүтэн нэрээ оруулна уу" />
               </div>
               <div>
-                <Label htmlFor="reg-email">Имэйл</Label>
-                <Input id="reg-email" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} required className="mt-1" autoComplete="email" />
+                <Label htmlFor="reg-email">
+                  Имэйл <span className="text-muted-foreground text-xs">(аль нэгийг оруулна уу)</span>
+                </Label>
+                <Input id="reg-email" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="mt-1" autoComplete="email" placeholder="example@mail.com" />
               </div>
               <div>
-                <Label htmlFor="reg-phone">Утасны дугаар <span className="text-muted-foreground text-xs">(заавал биш)</span></Label>
-                <Input id="reg-phone" type="tel" value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="+976 9911 2233" className="mt-1" autoComplete="tel" />
+                <Label htmlFor="reg-phone">Утасны дугаар</Label>
+                <Input id="reg-phone" type="tel" value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="99112233" className="mt-1" autoComplete="tel" />
               </div>
               <div>
-                <Label htmlFor="reg-password">Нууц үг</Label>
+                <Label htmlFor="reg-password">Нууц үг <span className="text-red-500">*</span></Label>
                 <PasswordInput id="reg-password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required className="mt-1" autoComplete="new-password" />
               </div>
               {regError && <p className="text-red-600 text-sm text-center">{regError}</p>}

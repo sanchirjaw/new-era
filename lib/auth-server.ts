@@ -55,15 +55,22 @@ export function verifyToken(token: string): AuthUser | null {
 }
 
 export async function createUser(name: string, email: string, password: string, phone?: string): Promise<AuthUser> {
-  const existingUser = await db.getUserByEmail(email)
-  if (existingUser) {
-    throw new Error("User already exists")
+  // Check duplicate by email (if provided)
+  if (email) {
+    const existingByEmail = await db.getUserByEmail(email)
+    if (existingByEmail) throw new Error("User already exists")
+  }
+
+  // Check duplicate by phone (if provided and no email)
+  if (!email && phone) {
+    const existingByPhone = await db.getUserByPhone(phone)
+    if (existingByPhone) throw new Error("User already exists")
   }
 
   const hashedPassword = await hashPassword(password)
   const userId = await db.createUser({
     name,
-    email,
+    email: email || "",
     password: hashedPassword,
     role: "student",
     enrolledCourses: [],
@@ -72,7 +79,7 @@ export async function createUser(name: string, email: string, password: string, 
 
   return {
     id: userId.toString(),
-    email,
+    email: email || "",
     name,
     role: "student",
   }
@@ -101,8 +108,12 @@ export async function createAdminUser(name: string, email: string, password: str
   }
 }
 
-export async function authenticateUser(email: string, password: string): Promise<AuthUser | null> {
-  const user = await db.getUserByEmail(email)
+export async function authenticateUser(emailOrPhone: string, password: string): Promise<AuthUser | null> {
+  // Try email first, then phone number
+  let user = await db.getUserByEmail(emailOrPhone)
+  if (!user) {
+    user = await db.getUserByPhone(emailOrPhone)
+  }
   if (!user) {
     return null
   }
