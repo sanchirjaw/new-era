@@ -1000,7 +1000,7 @@ export class Database {
       
       const result = await db.collection("users").updateOne(
         { _id: userId },
-        { $push: { enrolledCourses: courseId } }
+        { $addToSet: { enrolledCourses: courseId } }
       )
       
       return result.modifiedCount > 0

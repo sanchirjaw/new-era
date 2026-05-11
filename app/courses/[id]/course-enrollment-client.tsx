@@ -85,6 +85,31 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
         }
     }, [authLoading])
 
+    // Auto-check: if user is logged in but not enrolled, silently check for completed payment
+    // This handles mobile where window.open navigates away and payment_success param is lost
+    useEffect(() => {
+        const isEnrolledNow = course && user?.enrolledCourses?.includes(course._id || '')
+        if (user && !isEnrolledNow && !authLoading && !checkingPayment) {
+            const autoCheck = async () => {
+                try {
+                    const res = await fetch('/api/payments/verify-and-enroll', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ courseId: course._id })
+                    })
+                    if (res.ok) {
+                        const data = await res.json()
+                        if (data.enrolled) {
+                            await refreshUser()
+                        }
+                    }
+                } catch {}
+            }
+            autoCheck()
+        }
+    }, [user, authLoading])
+
     useEffect(() => {
         const fetchSettings = async () => {
             try {
