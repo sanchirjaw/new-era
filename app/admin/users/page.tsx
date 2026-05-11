@@ -286,10 +286,22 @@ export default function AdminUsers() {
     return courses.filter(course => user.enrolledCourses.includes(course._id))
   }
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredUsers = users
+    .filter(user =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Admin-ууд эхэнд
+      if (a.role === "admin" && b.role !== "admin") return -1
+      if (a.role !== "admin" && b.role === "admin") return 1
+      // Access-тай хэрэглэгчид дараа нь
+      const aHas = (a.enrolledCourses?.length || 0) > 0
+      const bHas = (b.enrolledCourses?.length || 0) > 0
+      if (aHas && !bHas) return -1
+      if (!aHas && bHas) return 1
+      return 0
+    })
 
   if (loading) {
     return (
@@ -390,8 +402,16 @@ export default function AdminUsers() {
             {filteredUsers.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No users found</div>
             ) : (
-              filteredUsers.map((user) => (
-                <div key={user._id} className="flex items-center justify-between p-4 border rounded-lg">
+              filteredUsers.map((user) => {
+                const hasAccess = (user.enrolledCourses?.length || 0) > 0
+                return (
+                <div key={user._id} className={`flex items-center justify-between p-4 border rounded-lg border-l-4 ${
+                  user.role === "admin"
+                    ? "border-l-red-500 bg-red-50/40"
+                    : hasAccess
+                    ? "border-l-green-500 bg-green-50/30"
+                    : "border-l-gray-200"
+                }`}>
                   <div className="flex items-center gap-4">
                     <Avatar>
                       <AvatarImage src={user.profilePicture} />
@@ -463,7 +483,8 @@ export default function AdminUsers() {
                     </Button>
                   </div>
                 </div>
-              ))
+                )}
+              )
             )}
           </div>
         </CardContent>
