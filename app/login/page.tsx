@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { Header } from "@/components/header"
 import { GoogleButton } from "@/components/ui/google-button"
+import { FacebookButton } from "@/components/ui/facebook-button"
 import { signIn } from "next-auth/react"
 
 function AuthForm() {
@@ -86,13 +87,15 @@ function AuthForm() {
   }
 
   const handleGoogle = async () => {
-    setLoginError("")
-    setRegError("")
-    try {
-      await signIn("google", { callbackUrl: "/", redirect: true })
-    } catch {
-      setLoginError("Google баталгаажуулалт амжилтгүй. Дахин оролдоно уу.")
-    }
+    setLoginError(""); setRegError("")
+    try { await signIn("google", { callbackUrl: "/", redirect: true }) }
+    catch { setLoginError("Google баталгаажуулалт амжилтгүй.") }
+  }
+
+  const handleFacebook = async () => {
+    setLoginError(""); setRegError("")
+    try { await signIn("facebook", { callbackUrl: "/", redirect: true }) }
+    catch { setLoginError("Facebook баталгаажуулалт амжилтгүй.") }
   }
 
   return (
@@ -140,7 +143,10 @@ function AuthForm() {
               <Button type="submit" className="w-full" disabled={loginLoading}>
                 {loginLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
               </Button>
-              <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+              <div className="space-y-2">
+                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+                <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
+              </div>
             </form>
           )}
 
@@ -172,7 +178,10 @@ function AuthForm() {
               <Button type="submit" className="w-full" disabled={regLoading}>
                 {regLoading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
               </Button>
-              <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+              <div className="space-y-2">
+                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
+                <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
+              </div>
             </form>
           )}
 

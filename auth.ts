@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Facebook from "next-auth/providers/facebook";
 
 // Extend the built-in session types
 declare module "next-auth" {
@@ -29,6 +30,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
+    Facebook({
+      clientId: process.env.AUTH_FACEBOOK_ID!,
+      clientSecret: process.env.AUTH_FACEBOOK_SECRET!,
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -39,23 +44,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
+      if (account?.provider === "google" || account?.provider === "facebook") {
         try {
-          // Import db here to avoid circular imports
           const { db } = await import("@/lib/database");
 
-          // Check if user exists by email
-          let existingUser = await db.getUserByEmail(user.email!);
+          let existingUser = user.email ? await db.getUserByEmail(user.email) : null;
 
           if (!existingUser) {
-            // Create new user in MongoDB
+            const providerName = account.provider === "google" ? "Google User" : "Facebook User";
             const userData = {
-              name: user.name || "Google User",
-              email: user.email!,
+              name: user.name || providerName,
+              email: user.email || "",
               role: "student" as const,
-              oauthProvider: "google" as const,
+              oauthProvider: account.provider as "google" | "facebook",
               oauthId: user.id,
-              enrolledCourses: [], // Initialize as empty array
+              enrolledCourses: [],
             };
 
             const newUserId = await db.createUser(userData);
@@ -68,14 +71,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           return true;
         } catch (error) {
-          console.error("Google OAuth sign-in error:", error);
+          console.error(`${account.provider} OAuth sign-in error:`, error);
           return false;
         }
       }
       return true;
     },
     async jwt({ token, user, account }) {
-      if (account?.provider === "google" && user) {
+      if ((account?.provider === "google" || account?.provider === "facebook") && user) {
         token.provider = account.provider;
         token.id = user.id;
         token.enrolledCourses = user.enrolledCourses;
