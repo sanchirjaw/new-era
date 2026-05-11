@@ -139,14 +139,19 @@ function AuthForm() {
                   Нууц үгээ мартсан уу?
                 </Link>
               </div>
-              {loginError && <p className="text-red-600 text-sm text-center">{loginError}</p>}
-              <Button type="submit" className="w-full" disabled={loginLoading}>
-                {loginLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
-              </Button>
               <div className="space-y-2">
                 <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
                 <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
               </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="h-px flex-1 bg-border" />
+                <span>эсвэл</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              {loginError && <p className="text-red-600 text-sm text-center">{loginError}</p>}
+              <Button type="submit" className="w-full" disabled={loginLoading}>
+                {loginLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+              </Button>
             </form>
           )}
 
@@ -174,14 +179,19 @@ function AuthForm() {
                 <Label htmlFor="reg-password">Нууц үг <span className="text-red-500">*</span></Label>
                 <PasswordInput id="reg-password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required className="mt-1" autoComplete="new-password" />
               </div>
-              {regError && <p className="text-red-600 text-sm text-center">{regError}</p>}
-              <Button type="submit" className="w-full" disabled={regLoading}>
-                {regLoading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
-              </Button>
               <div className="space-y-2">
                 <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
                 <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
               </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="h-px flex-1 bg-border" />
+                <span>эсвэл</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              {regError && <p className="text-red-600 text-sm text-center">{regError}</p>}
+              <Button type="submit" className="w-full" disabled={regLoading}>
+                {regLoading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
+              </Button>
             </form>
           )}
 
