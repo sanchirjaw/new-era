@@ -144,8 +144,8 @@ function AuthForm() {
                 {loginLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
               </Button>
               <div className="space-y-2">
-                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
                 <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
+                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
               </div>
             </form>
           )}
@@ -179,8 +179,8 @@ function AuthForm() {
                 {regLoading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
               </Button>
               <div className="space-y-2">
-                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
                 <FacebookButton onClick={handleFacebook}>Facebook-ээр үргэлжлүүлэх</FacebookButton>
+                <GoogleButton onClick={handleGoogle}>Google-ээр үргэлжлүүлэх</GoogleButton>
               </div>
             </form>
           )}
