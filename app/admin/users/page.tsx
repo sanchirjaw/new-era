@@ -385,16 +385,34 @@ export default function AdminUsers() {
         </CardHeader>
         <CardContent>
           {/* Search Bar */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-3 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Q Хэрэглэгч хайх..."
+                placeholder="Хэрэглэгч хайх..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
+            {users.filter(u => u.role !== "admin" && (u.enrolledCourses?.length || 0) === 0).length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50 whitespace-nowrap"
+                onClick={async () => {
+                  const noAccessUsers = users.filter(u => u.role !== "admin" && (u.enrolledCourses?.length || 0) === 0)
+                  if (!confirm(`Access-гүй ${noAccessUsers.length} хэрэглэгчийг устгах уу?`)) return
+                  for (const u of noAccessUsers) {
+                    await fetch(`/api/admin/users/${u._id}`, { method: "DELETE", credentials: "include" })
+                  }
+                  fetchUsers()
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Access-гүй {users.filter(u => u.role !== "admin" && (u.enrolledCourses?.length || 0) === 0).length} устгах
+              </Button>
+            )}
           </div>
 
           {/* Users List */}
@@ -420,7 +438,7 @@ export default function AdminUsers() {
                     <div>
                       <h3 className="font-medium">{user.name}</h3>
                       <p className="text-sm text-gray-500">{user.email}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant={user.role === "admin" ? "destructive" : "secondary"}>
                           {user.role}
                         </Badge>
@@ -431,6 +449,11 @@ export default function AdminUsers() {
                           <BookOpen className="h-3 w-3" />
                           {user.enrolledCourses?.length || 0} courses
                         </Badge>
+                        {!hasAccess && user.createdAt && (
+                          <span className="text-xs text-gray-400">
+                            🕐 {new Date(user.createdAt).toLocaleDateString("mn-MN")} нэгдсэн
+                          </span>
+                        )}
                       </div>
                       {/* Show enrolled courses with expiry */}
                       {user.enrolledCourses && user.enrolledCourses.length > 0 && (
