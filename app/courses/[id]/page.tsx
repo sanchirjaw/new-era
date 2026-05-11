@@ -108,18 +108,18 @@ export default function CoursePage({ params }: PageProps) {
       <Header />
 
       {/* Course Header */}
-      <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-20">
+      <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-10 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl">
-            <div className="mb-4">
-              <Badge className="bg-[#5B7FFF] text-white mb-4">
+            <div className="mb-3">
+              <Badge className="bg-[#5B7FFF] text-white mb-3">
                 {getDisplayCategory(course.title)}
               </Badge>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
               {getDisplayTitle(course.title)}
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl">
+            <p className="text-base md:text-xl text-muted-foreground mb-6 max-w-3xl line-clamp-2 md:line-clamp-none">
               {getDisplayDescription(course.title, course.description)}
             </p>
             <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
@@ -166,20 +166,11 @@ export default function CoursePage({ params }: PageProps) {
       </section>
 
       {/* Course Content */}
-      <section className="py-20">
+      <section className="py-10 md:py-20">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-12">
+          <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Course Description - Left Column */}
             <div className="lg:col-span-2 space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">Хичээлийн тухай</h2>
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {course.description}
-                  </p>
-                </div>
-              </div>
-
               <div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Хичээлийн агуулга</h3>
                 <Card>
@@ -366,6 +357,14 @@ export default function CoursePage({ params }: PageProps) {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+
+              {/* Course description — shown after content list */}
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-3">Хичээлийн тухай</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  {course.description}
+                </p>
               </div>
             </div>
 
