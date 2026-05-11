@@ -122,7 +122,7 @@ export default function CoursePage({ params }: PageProps) {
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl">
               {getDisplayDescription(course.title, course.description)}
             </p>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-yellow-500" />
                 <span className="font-medium">{course.rating || "4.8"} үнэлгээ</span>
@@ -140,6 +140,26 @@ export default function CoursePage({ params }: PageProps) {
                   <span className="text-base text-muted-foreground">/ ({course.accessDurationMonths} сар)</span>
                 ) : null}
               </div>
+            </div>
+
+            {/* Mobile-only CTA — shown below price on small screens */}
+            <div className="mt-6 lg:hidden">
+              {isEnrolled ? (
+                <Link
+                  href={`/courses/${course._id}/learn`}
+                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-base transition-colors"
+                >
+                  <Play className="w-5 h-5" />
+                  Хичээл үзэх
+                </Link>
+              ) : (
+                <a
+                  href="#enrollment"
+                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base transition-colors"
+                >
+                  Худалдаж авах — ₮{course.price?.toLocaleString() || "0"}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -378,7 +398,7 @@ export default function CoursePage({ params }: PageProps) {
               </div>
 
               {/* Enrollment Status */}
-              <Card>
+              <Card id="enrollment">
                 <CardContent className="p-6">
                   <CourseEnrollmentClient course={course} />
                 </CardContent>
