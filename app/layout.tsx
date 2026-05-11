@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Outfit, DM_Sans, Space_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
+import { InAppBrowserDetector } from "@/components/in-app-browser-detector"
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -56,6 +57,7 @@ export default async function RootLayout({
       </head>
       <body className="font-sans bg-background text-foreground">
         <Providers>
+          <InAppBrowserDetector />
           {children}
         </Providers>
       </body>
