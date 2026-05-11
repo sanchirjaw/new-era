@@ -456,10 +456,20 @@ export default function AdminUsers() {
             {filteredUsers.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No users found</div>
             ) : (
-              filteredUsers.map((user) => {
+              filteredUsers.map((user, idx) => {
                 const hasAccess = (user.enrolledCourses?.length || 0) > 0
+                const prevUser = filteredUsers[idx - 1]
+                const showDivider = idx > 0 && prevUser?.role === "admin" && user.role !== "admin"
                 return (
-                <div key={user._id} className={`flex items-center justify-between p-4 border rounded-lg border-l-4 ${
+                <div key={user._id}>
+                {showDivider && (
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="h-px flex-1 bg-gray-200" />
+                    <span className="text-xs text-gray-400">Сурагчид</span>
+                    <div className="h-px flex-1 bg-gray-200" />
+                  </div>
+                )}
+                <div className={`flex items-center justify-between p-4 border rounded-lg border-l-4 ${
                   user.role === "admin"
                     ? "border-l-red-500 bg-red-50/40"
                     : hasAccess
@@ -544,8 +554,9 @@ export default function AdminUsers() {
                     </Button>
                   </div>
                 </div>
-                )}
-              )
+                </div>
+                )
+              })
             )}
           </div>
         </CardContent>
