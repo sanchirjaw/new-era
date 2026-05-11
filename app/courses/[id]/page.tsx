@@ -157,7 +157,7 @@ export default function CoursePage({ params }: PageProps) {
                   href="#enrollment"
                   className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base transition-colors"
                 >
-                  Худалдаж авах — ₮{course.price?.toLocaleString() || "0"}
+                  Сургалтад элсэх — ₮{course.price?.toLocaleString() || "0"}
                 </a>
               )}
             </div>

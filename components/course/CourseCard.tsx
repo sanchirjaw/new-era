@@ -277,7 +277,7 @@ export function CourseCard({
                 <Button
                   onClick={() => onBuy?.(id)}
                   className="col-span-2 bg-blue-600 hover:bg-blue-600/90 sm:col-span-1"
-                  aria-label={`${title} худалдаж авах`}
+                  aria-label={`${title} сургалтад элсэх`}
                   data-testid="buy-btn"
                 >
                   {isFree ? (
@@ -288,7 +288,7 @@ export function CourseCard({
                   ) : (
                     <>
                       <Wallet className="mr-2 h-4 w-4" />
-                      Худалдаж авах
+                      Сургалтад элсэх
                     </>
                   )}
                 </Button>

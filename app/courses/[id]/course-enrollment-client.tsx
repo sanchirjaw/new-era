@@ -177,7 +177,7 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                 )}
                 <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                     <div className="text-red-600 dark:text-red-400 font-medium mb-2">
-                        🛒 Худалдаж авах шаардлагатай
+                        🎓 Сургалтад элсэх шаардлагатай
                     </div>
                     <p className="text-sm text-red-600/80 dark:text-red-400/80">
                         Энэ хичээлийг үзэхийн тулд худалдаж авна уу
@@ -188,7 +188,7 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                     onClick={() => setShowPaymentModal(true)}
                 >
                     <ShoppingCart className="w-4 h-4 mr-2" />
-                    ₮{course?.price?.toLocaleString() || "0"} -өөр худалдаж авах
+                    Сургалтад элсэх — ₮{course?.price?.toLocaleString() || "0"}
                 </Button>
             </div>
         )

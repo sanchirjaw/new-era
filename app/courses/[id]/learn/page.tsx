@@ -201,7 +201,7 @@ export default function LearnPage() {
             ) : (
               <Button className="w-full bg-orange-600 hover:bg-orange-700">
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                {course.price ? `₮${course.price.toLocaleString()} худалдаж авах` : 'Худалдаж авах'}
+                {course.price ? `Сургалтад элсэх — ₮${course.price.toLocaleString()}` : 'Сургалтад элсэх'}
               </Button>
             )}
             <Button asChild variant="ghost" className="w-full text-zinc-400 hover:text-white">
@@ -469,7 +469,7 @@ export default function LearnPage() {
                       </div>
                       <Button className="bg-orange-600 hover:bg-orange-700" onClick={() => setShowPaymentModal(true)}>
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        {course.price ? `₮${course.price.toLocaleString()} худалдаж авах` : 'Худалдаж авах'}
+                        {course.price ? `Сургалтад элсэх — ₮${course.price.toLocaleString()}` : 'Сургалтад элсэх'}
                       </Button>
                     </div>
                   </div>
