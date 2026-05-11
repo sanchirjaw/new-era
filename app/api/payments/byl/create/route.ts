@@ -48,6 +48,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (paymentMethod === "checkout") {
+      // Return existing pending payment if one already exists (prevent duplicates)
+      const client0 = await (await import("@/lib/mongodb")).default
+      const db0 = client0.db("new-era-platform")
+      const existing = await db0.collection("payments").findOne({
+        userId: new ObjectId(user.id),
+        courseId: new ObjectId(courseId),
+        status: "pending",
+        bylCheckoutId: { $exists: true, $ne: null },
+        createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) } // within last 30 min
+      })
+      if (existing?.bylCheckoutId && typeof existing.bylCheckoutId === "number") {
+        try {
+          const { bylService: svc } = await import("@/lib/byl")
+          const checkout = await svc.getCheckout(existing.bylCheckoutId)
+          if (checkout.status !== "expired" && checkout.status !== "complete") {
+            return NextResponse.json({ paymentId: existing._id.toString(), bylCheckout: checkout, success: true })
+          }
+        } catch {}
+      }
+
       // Create payment record first with temporary bylCheckoutId
       const tempCheckoutId = Date.now() // Temporary ID to avoid null
       const paymentId = await db.createPayment({

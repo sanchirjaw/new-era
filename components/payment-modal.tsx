@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Loader2, ExternalLink } from "lucide-react"
@@ -28,6 +28,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const [hasRedirected, setHasRedirected] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"byl" | "bank_transfer">("byl")
   const [bankTransferData, setBankTransferData] = useState<any>(null)
+  const creatingRef = useRef(false) // guard against double-call (React Strict Mode / re-renders)
 
   // Automatically create Byl payment when modal opens and byl is selected
   useEffect(() => {
@@ -37,6 +38,8 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   }, [selectedPaymentMethod])
 
   const createBylPayment = async () => {
+    if (creatingRef.current) return
+    creatingRef.current = true
     setLoading(true)
     try {
       const response = await fetch("/api/payments/byl/create", {
@@ -63,6 +66,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
     } catch (error) {
       console.error("Payment error:", error)
       alert("Төлбөр үүсгэхэд алдаа гарлаа")
+      creatingRef.current = false // allow retry on error
     } finally {
       setLoading(false)
     }
