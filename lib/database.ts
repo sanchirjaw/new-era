@@ -191,6 +191,12 @@ export class Database {
   async createEnrollment(enrollment: Omit<Enrollment, "_id">): Promise<ObjectId> {
     const client = await this.getClient()
     const db = client.db(process.env.MONGODB_DB || "new-era-platform")
+    // Dedup: хэрэв энэ user+course enrollment аль хэдийн байвал шинээр үүсгэхгүй
+    const existing = await db.collection("enrollments").findOne({
+      userId: enrollment.userId,
+      courseId: enrollment.courseId,
+    })
+    if (existing) return existing._id
     const result = await db.collection("enrollments").insertOne(enrollment)
     return result.insertedId
   }
