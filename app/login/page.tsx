@@ -67,6 +67,11 @@ function AuthForm() {
     e.preventDefault()
     setRegLoading(true)
     setRegError("")
+    if (!regName.trim()) {
+      setRegError("Нэрээ оруулна уу")
+      setRegLoading(false)
+      return
+    }
     if (!regEmail && !regPhone) {
       setRegError("Имэйл эсвэл утасны дугаарын аль нэгийг оруулна уу")
       setRegLoading(false)
@@ -74,6 +79,11 @@ function AuthForm() {
     }
     if (regPhone && !/^\+?[0-9\s-]{7,15}$/.test(regPhone)) {
       setRegError("Утасны дугаарын формат буруу байна. Жишээ: 99112233")
+      setRegLoading(false)
+      return
+    }
+    if (regPassword.length < 6) {
+      setRegError("Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой")
       setRegLoading(false)
       return
     }
@@ -89,13 +99,13 @@ function AuthForm() {
   const handleGoogle = async () => {
     setLoginError(""); setRegError("")
     try { await signIn("google", { callbackUrl: "/", redirect: true }) }
-    catch { setLoginError("Google баталгаажуулалт амжилтгүй.") }
+    catch { tab === "login" ? setLoginError("Google баталгаажуулалт амжилтгүй.") : setRegError("Google баталгаажуулалт амжилтгүй.") }
   }
 
   const handleFacebook = async () => {
     setLoginError(""); setRegError("")
     try { await signIn("facebook", { callbackUrl: "/", redirect: true }) }
-    catch { setLoginError("Facebook баталгаажуулалт амжилтгүй.") }
+    catch { tab === "login" ? setLoginError("Facebook баталгаажуулалт амжилтгүй.") : setRegError("Facebook баталгаажуулалт амжилтгүй.") }
   }
 
   return (

@@ -28,7 +28,15 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const [hasRedirected, setHasRedirected] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"byl" | "bank_transfer">("byl")
   const [bankTransferData, setBankTransferData] = useState<any>(null)
-  const creatingRef = useRef(false) // guard against double-call (React Strict Mode / re-renders)
+  const creatingRef = useRef(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
 
   // Automatically create Byl payment when modal opens and byl is selected
   useEffect(() => {
@@ -56,31 +64,36 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
         setBylCheckout(data.bylCheckout)
         setPaymentId(data.paymentId)
         setHasRedirected(true)
-        // Automatically redirect to Byl payment page
+        creatingRef.current = false // allow retry if needed
         window.open(data.bylCheckout.url, "_blank")
         startPaymentCheck(data.paymentId)
       } else {
         const error = await response.json()
+        creatingRef.current = false
         alert(error.error || "Төлбөр үүсгэхэд алдаа гарлаа")
       }
     } catch (error) {
       console.error("Payment error:", error)
       alert("Төлбөр үүсгэхэд алдаа гарлаа")
-      creatingRef.current = false // allow retry on error
+      creatingRef.current = false
     } finally {
       setLoading(false)
     }
   }
 
   const startPaymentCheck = (paymentId: string) => {
-    let checkCount = 0
-    const maxChecks = 120 // 2 minutes max (120 * 1000ms)
+    // Clear any existing interval
+    if (intervalRef.current) clearInterval(intervalRef.current)
 
-    const checkInterval = setInterval(async () => {
+    let checkCount = 0
+    const maxChecks = 60 // 3 minutes max (60 * 3000ms)
+
+    intervalRef.current = setInterval(async () => {
       try {
         const response = await fetch("/api/payments/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ paymentId }),
         })
 
@@ -89,26 +102,25 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
           setPaymentStatus(data.status)
 
           if (data.status === "completed") {
-            clearInterval(checkInterval)
-            alert("Төлбөр амжилттай төлөгдлөө! Хичээлд бүртгэгдлээ.")
+            if (intervalRef.current) clearInterval(intervalRef.current)
             onClose()
-            // Redirect immediately to show course access
             window.location.href = window.location.pathname + "?payment_success=true&t=" + Date.now()
+            return
           }
         }
 
         checkCount++
         if (checkCount >= maxChecks) {
-          clearInterval(checkInterval)
+          if (intervalRef.current) clearInterval(intervalRef.current)
         }
       } catch (error) {
         console.error("Payment check error:", error)
         checkCount++
         if (checkCount >= maxChecks) {
-          clearInterval(checkInterval)
+          if (intervalRef.current) clearInterval(intervalRef.current)
         }
       }
-    }, 1000) // Check every 1 second instead of 3 seconds
+    }, 3000) // Check every 3 seconds
   }
 
   const reopenPaymentPage = () => {

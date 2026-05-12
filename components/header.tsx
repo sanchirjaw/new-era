@@ -106,8 +106,7 @@ function ProfileDrawer({ user, logout }: { user: any; logout: () => void }) {
             <nav className="space-y-1">
               {[
                 { href: "/profile", icon: <User className="w-4 h-4" />, label: "Профайл" },
-                { href: "/notifications", icon: <Bell className="w-4 h-4" />, label: "Мэдэгдлүүд" },
-                { href: "/help", icon: <HelpCircle className="w-4 h-4" />, label: "Тусламж" },
+                { href: "/dashboard", icon: <BookOpen className="w-4 h-4" />, label: "Миний хичээлүүд" },
               ].map(item => (
                 <Link key={item.href} href={item.href}
                   onClick={() => setOpen(false)}

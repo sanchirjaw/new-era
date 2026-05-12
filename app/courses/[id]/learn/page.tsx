@@ -200,9 +200,11 @@ export default function LearnPage() {
                 <Button asChild variant="outline" className="w-full border-zinc-700 text-white hover:bg-zinc-800"><Link href="/login">Нэвтрэх</Link></Button>
               </>
             ) : (
-              <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {course.price ? `Сургалтад элсэх — ₮${course.price.toLocaleString()}` : 'Сургалтад элсэх'}
+              <Button asChild className="w-full bg-orange-600 hover:bg-orange-700">
+                <Link href={`/courses/${course._id}`}>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  {course.price ? `Сургалтад элсэх — ₮${course.price.toLocaleString()}` : 'Сургалтад элсэх'}
+                </Link>
               </Button>
             )}
             <Button asChild variant="ghost" className="w-full text-zinc-400 hover:text-white">
@@ -384,7 +386,7 @@ export default function LearnPage() {
                   videoReady ? (
                     <iframe
                       key={selectedLesson?._id}
-                      src={`${selectedLesson?.videoUrl}${selectedLesson?.videoUrl?.includes('?') ? '&' : '?'}autoplay=true`}
+                      src={`${selectedLesson?.videoUrl}${selectedLesson?.videoUrl?.includes('?') ? '&' : '?'}autoplay=1`}
                       className="absolute inset-0 w-full h-full"
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

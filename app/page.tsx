@@ -368,8 +368,7 @@ export default async function Home() {
             </h2>
           </div>
 
-          {/* always 3 columns */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
             {[
               {
                 icon: features.feature1?.icon || "🌍",
