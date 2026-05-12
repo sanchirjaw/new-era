@@ -131,14 +131,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Already enrolled", enrolled: true })
     }
 
-    // Use MongoDB transactions for atomic enrollment (faster and more reliable)
-    const mongoSession = client.startSession()
-    let enrollmentResult
-
-    try {
-      await mongoSession.withTransaction(async () => {
-        // Create enrollment and update user in a single transaction
-        enrollmentResult = await db_conn.collection("enrollments").insertOne({
+    // Create enrollment (dedup-тай тул давхардахгүй)
+    await db_conn.collection("enrollments").updateOne(
+      { userId: new ObjectId(user.id), courseId: new ObjectId(courseId) },
+      {
+        $setOnInsert: {
           userId: new ObjectId(user.id),
           courseId: new ObjectId(courseId),
           paymentId: payment._id,
@@ -147,23 +144,20 @@ export async function POST(request: NextRequest) {
           completedLessons: [],
           progress: 0,
           isActive: true,
-        }, { session: mongoSession })
+        }
+      },
+      { upsert: true }
+    )
 
-        // Update user's enrolledCourses array
-        await db_conn.collection("users").updateOne(
-          { _id: new ObjectId(user.id) },
-          { $addToSet: { enrolledCourses: courseId } },
-          { session: mongoSession }
-        )
-      })
-    } finally {
-      await mongoSession.endSession()
-    }
+    // Update user's enrolledCourses array
+    await db_conn.collection("users").updateOne(
+      { _id: new ObjectId(user.id) },
+      { $addToSet: { enrolledCourses: courseId } }
+    )
 
     return NextResponse.json({
       message: "Enrollment created successfully",
       enrolled: true,
-      enrollmentId: enrollmentResult.insertedId.toString()
     })
 
   } catch (error) {
