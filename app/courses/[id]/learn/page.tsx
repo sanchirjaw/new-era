@@ -41,8 +41,21 @@ export default function LearnPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
+
+  // Sync with app theme (localStorage)
+  useEffect(() => {
+    const saved = localStorage.getItem("theme")
+    setIsDark(saved === "dark")
+  }, [])
+
+  const toggleDark = () => {
+    const next = !isDark
+    setIsDark(next)
+    localStorage.setItem("theme", next ? "dark" : "light")
+    document.documentElement.classList.toggle("dark", next)
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -331,7 +344,7 @@ export default function LearnPage() {
       <main className={`flex-1 overflow-y-auto flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
 
         {/* ── Top bar ── */}
-        <div className={`flex items-center gap-2 px-4 py-2.5 border-b shrink-0 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+        <div className={`sticky top-0 z-10 flex items-center gap-2 px-4 py-2.5 border-b shrink-0 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
           {/* Desktop: toggle sidebar */}
           <button onClick={() => setSidebarOpen(o => !o)} className={`hidden md:flex p-1.5 rounded transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
             <Menu className={`w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`} />
@@ -348,7 +361,7 @@ export default function LearnPage() {
               <Clock className="w-3 h-3" />{Math.floor(remainingPreviewSeconds / 60)}:{String(remainingPreviewSeconds % 60).padStart(2, "0")}
             </div>
           )}
-          <button onClick={() => setIsDark(d => !d)} className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-yellow-400' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'}`}>
+          <button onClick={toggleDark} className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-yellow-400' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'}`}>
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
