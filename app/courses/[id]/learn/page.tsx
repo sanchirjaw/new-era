@@ -303,39 +303,45 @@ export default function LearnPage() {
         {lessonListContent}
       </aside>
 
-      {/* ── MOBILE LESSON LIST OVERLAY ── */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
-          <div className={`relative mt-auto w-full rounded-t-2xl flex flex-col overflow-hidden ${isDark ? 'bg-zinc-900' : 'bg-white'}`} style={{ maxHeight: '82vh' }}>
-            {/* Handle + close */}
-            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-              <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Хичээлүүд</span>
-              <button onClick={() => setMobileMenuOpen(false)} className={`p-1.5 rounded-full ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-500'}`}>
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {lessonListContent}
-            </div>
+      {/* ── MOBILE LESSON LIST OVERLAY — slides from left ── */}
+      <div className={`md:hidden fixed inset-0 z-50 flex transition-all duration-300 ${mobileMenuOpen ? 'visible' : 'invisible'}`}>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        {/* Drawer */}
+        <div
+          className={`relative w-[80vw] max-w-xs h-full flex flex-col overflow-hidden transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDark ? 'bg-zinc-900' : 'bg-white'}`}
+        >
+          {/* Header */}
+          <div className={`flex items-center justify-between px-4 py-3 border-b shrink-0 ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+            <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Хичээлүүд</span>
+            <button onClick={() => setMobileMenuOpen(false)} className={`p-1.5 rounded-full ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-500'}`}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {lessonListContent}
           </div>
         </div>
-      )}
+      </div>
 
       {/* ── MAIN CONTENT ── */}
       <main className={`flex-1 overflow-y-auto flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
 
         {/* ── Top bar ── */}
         <div className={`flex items-center gap-2 px-4 py-2.5 border-b shrink-0 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
-          {/* Desktop: toggle sidebar | Mobile: back to course */}
+          {/* Desktop: toggle sidebar */}
           <button onClick={() => setSidebarOpen(o => !o)} className={`hidden md:flex p-1.5 rounded transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
             <Menu className={`w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`} />
           </button>
-          <Link href={`/courses/${course._id}`} className={`md:hidden flex items-center gap-1 text-xs ${isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}>
-            <ChevronLeft className="w-4 h-4" /><span className="font-medium">Буцах</span>
-          </Link>
+          {/* Mobile: hamburger → opens lesson list */}
+          <button onClick={() => setMobileMenuOpen(true)} className={`md:hidden p-1.5 rounded transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
+            <Menu className={`w-5 h-5 ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`} />
+          </button>
           {/* Mobile: lesson title */}
-          <p className={`md:hidden flex-1 text-sm font-medium truncate mx-2 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>{selectedLesson?.title || course.title}</p>
+          <p className={`md:hidden flex-1 text-sm font-medium truncate mx-1 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>{selectedLesson?.title || course.title}</p>
           <div className="hidden md:flex flex-1" />
           {canUseFreePreview && (
             <div className={`flex items-center gap-1.5 text-xs font-medium text-orange-600 px-2.5 py-1 rounded-full border ${isDark ? 'bg-orange-950/30 border-orange-800' : 'bg-orange-50 border-orange-200'}`}>
