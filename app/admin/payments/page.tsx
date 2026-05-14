@@ -268,7 +268,7 @@ export default function AdminPayments() {
 
       {/* ── MONTHLY VIEW ─────────────────────────────────────────────────── */}
       {mode === "monthly" && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
           {byDay.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
               <Calendar className="w-12 h-12 mb-3" />

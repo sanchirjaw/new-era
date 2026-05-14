@@ -494,7 +494,7 @@ export default function AdminDashboard() {
         )}
 
         {/* ── Finance summary row ───────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold opacity-80">{MONTHS_MN[chartMonth - 1]} орлого</p>

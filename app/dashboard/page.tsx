@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
         {/* My Courses */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
             <h2 className="text-2xl font-bold text-foreground">Миний элссэн хичээлүүд ({stats?.enrolledCourses || 0})</h2>
             <Button
               variant="outline"

@@ -92,7 +92,7 @@ export default async function Home() {
               </div>
 
               {/* headline */}
-              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] text-foreground">
+              <h1 className="text-3xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] text-foreground">
                 Чанартай{" "}
                 <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRAD }}>хичээлүүд.</span>
                 <br />
