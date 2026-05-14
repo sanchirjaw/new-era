@@ -56,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: user.name || providerName,
               email: user.email || "",
               role: "student" as const,
-              oauthProvider: account.provider as "google" | "facebook",
+              oauthProvider: account.provider as "google",
               oauthId: user.id,
               enrolledCourses: [],
             };
@@ -65,7 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user.id = newUserId.toString();
             user.enrolledCourses = [];
           } else {
-            user.id = existingUser._id.toString();
+            user.id = existingUser._id!.toString();
             user.enrolledCourses = existingUser.enrolledCourses?.map(id => id.toString()) || [];
           }
 

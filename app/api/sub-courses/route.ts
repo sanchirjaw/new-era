@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/database"
+import { ObjectId } from "mongodb"
 
 // GET /api/sub-courses - Get sub-courses by courseId (public endpoint)
 export async function GET(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get sub-courses for the specified course
-    const subCourses = await db.getSubCoursesByCourseId(courseId)
+    const subCourses = await db.getSubCoursesByCourseId(new ObjectId(courseId))
     
     return NextResponse.json({ subCourses })
   } catch (error) {

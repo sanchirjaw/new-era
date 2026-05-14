@@ -5,7 +5,7 @@ export interface AuthUser {
   role: "student" | "admin"
   enrolledCourses?: string[]
   phone?: string
-  oauthProvider?: "google"
+  oauthProvider?: "google" | "facebook"
   oauthId?: string
 }
 
@@ -26,6 +26,7 @@ export interface Course {
   rating: number
   totalRatings: number
   isActive: boolean
+  accessDurationMonths?: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -60,10 +61,12 @@ export interface User {
   email: string
   password: string
   role: "student" | "admin"
-  enrolledCourses: string[] | any[] // Allow both string[] and ObjectId[]
+  enrolledCourses: string[] | any[]
   phone?: string
   address?: string
   bio?: string
+  oauthProvider?: "google" | "facebook"
+  oauthId?: string
   createdAt: Date
   updatedAt: Date
 }

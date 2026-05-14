@@ -118,7 +118,7 @@ export async function authenticateUser(emailOrPhone: string, password: string): 
     return null
   }
 
-  const isValid = await verifyPassword(password, user.password)
+  const isValid = await verifyPassword(password, user.password || "")
   if (!isValid) {
     return null
   }
