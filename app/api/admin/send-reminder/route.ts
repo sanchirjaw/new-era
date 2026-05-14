@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/auth-server"
 import { db } from "@/lib/database"
-import { Resend } from "resend"
 import { ObjectId } from "mongodb"
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   const admin = await getAdminUser(request)
@@ -14,6 +11,9 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(userIds) || userIds.length === 0) {
     return NextResponse.json({ error: "No users specified" }, { status: 400 })
   }
+
+  const { Resend } = await import("resend")
+  const resend = new Resend(process.env.RESEND_API_KEY)
 
   let sent = 0
   const errors: string[] = []
