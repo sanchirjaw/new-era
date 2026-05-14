@@ -131,15 +131,17 @@ export default function CoursePage({ params }: PageProps) {
                 <Users className="w-5 h-5" />
                 <span>{course.enrolledCount || 0} суралцагч</span>
               </div>
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-2xl font-black text-orange-500">₮{course.price?.toLocaleString() || "0"}</span>
-                {course.originalPrice && course.originalPrice > course.price && (
-                  <span className="text-lg text-muted-foreground line-through">₮{course.originalPrice.toLocaleString()}</span>
-                )}
-                {course.accessDurationMonths ? (
-                  <span className="text-base text-muted-foreground">/ ({course.accessDurationMonths} сар)</span>
-                ) : null}
-              </div>
+              {!isEnrolled && (
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-2xl font-black text-orange-500">₮{course.price?.toLocaleString() || "0"}</span>
+                  {course.originalPrice && course.originalPrice > course.price && (
+                    <span className="text-lg text-muted-foreground line-through">₮{course.originalPrice.toLocaleString()}</span>
+                  )}
+                  {course.accessDurationMonths ? (
+                    <span className="text-base text-muted-foreground">/ ({course.accessDurationMonths} сар)</span>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             {/* Mobile-only CTA — shown below price on small screens */}
