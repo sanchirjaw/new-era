@@ -43,7 +43,7 @@ const sidebarItems = [
   },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
 
   const handleLogout = async () => {
@@ -70,6 +70,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors",
                 isActive
