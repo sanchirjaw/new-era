@@ -227,13 +227,10 @@ export default function CoursePage({ params }: PageProps) {
                                                   <Play className="w-4 h-4 text-primary" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <h5 className="font-medium text-foreground truncate">{lesson.order}. {lesson.title}</h5>
-                                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                      <Clock className="w-3 h-3" />
-                                                      <span>{lesson.duration} мин</span>
-                                                    </div>
-                                                    <span className="truncate">{lesson.description}</span>
+                                                  <h5 className="font-medium text-foreground truncate text-sm">{lesson.order}. {lesson.title}</h5>
+                                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                                    <Clock className="w-3 h-3 shrink-0" />
+                                                    <span>{lesson.duration} мин</span>
                                                   </div>
                                                 </div>
                                                 {lesson.isPreview && (
@@ -261,22 +258,19 @@ export default function CoursePage({ params }: PageProps) {
                                       animationFillMode: 'both'
                                     }}
                                   >
-                                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm transition-all duration-300 cursor-pointer transform hover:scale-[1.02] hover:translate-x-1">
-                                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center transition-all duration-200 group-hover/lesson:bg-primary/20 group-hover/lesson:scale-110">
-                                        <Play className="w-4 h-4 text-primary transition-transform duration-200 group-hover/lesson:scale-110" />
+                                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer overflow-hidden">
+                                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                                        <Play className="w-4 h-4 text-primary" />
                                       </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-foreground group-hover/lesson:text-primary transition-colors duration-200">{lesson.order}. {lesson.title}</h4>
-                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                          <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            <span>{lesson.duration} мин</span>
-                                          </div>
-                                          <span className="truncate">{lesson.description}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-foreground truncate text-sm">{lesson.order}. {lesson.title}</h4>
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                          <Clock className="w-3 h-3 shrink-0" />
+                                          <span>{lesson.duration} мин</span>
                                         </div>
                                       </div>
                                       {lesson.isPreview && (
-                                        <Badge variant="secondary" className="transition-transform duration-200 group-hover/lesson:scale-105">Үнэгүй</Badge>
+                                        <Badge variant="secondary" className="shrink-0">Үнэгүй</Badge>
                                       )}
                                     </div>
                                   </Link>
@@ -334,16 +328,15 @@ export default function CoursePage({ params }: PageProps) {
                             // Fallback: flat lesson list if no sub-courses
                             <div className="space-y-2">
                               {course.lessons.map((lesson, index) => (
-                                <div key={lesson._id || index} className="flex items-center gap-3 p-3 rounded-lg border opacity-60">
-                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <div key={lesson._id || index} className="flex items-center gap-3 p-3 rounded-lg border opacity-60 overflow-hidden">
+                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                                     <span className="text-sm font-medium text-primary">{index + 1}</span>
                                   </div>
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-foreground">{lesson.title}</h4>
-                                    <p className="text-sm text-muted-foreground">{lesson.description}</p>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-foreground truncate text-sm">{lesson.title}</h4>
                                   </div>
                                   {lesson.isPreview && (
-                                    <Badge variant="secondary">Үнэгүй</Badge>
+                                    <Badge variant="secondary" className="shrink-0">Үнэгүй</Badge>
                                   )}
                                 </div>
                               ))}
