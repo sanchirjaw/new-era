@@ -101,7 +101,9 @@ export async function POST(request: NextRequest) {
         ],
         phone_number_collection: false,
         customer_email: user.email,
-        client_reference_id: courseId
+        client_reference_id: courseId,
+        payment_method_types: ["qr"],
+        submit_type: "pay"
       }
 
       const bylCheckout = await bylService.createCheckout(checkoutData)
