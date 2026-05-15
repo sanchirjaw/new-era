@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   RefreshCw, Search, CheckCircle, Clock, AlertTriangle,
   DollarSign, ChevronLeft, ChevronRight, Calendar, List,
-  ArrowLeft, TrendingUp, CreditCard, Banknote,
+  ArrowLeft, TrendingUp, CreditCard, Banknote, Trash2,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -119,6 +119,16 @@ export default function AdminPayments() {
   }
 
   const handleRefresh = () => { setRefreshing(true); loadPayments() }
+
+  const deletePayment = async (paymentId: string) => {
+    if (!confirm("Энэ төлбөрийг устгах уу?")) return
+    const r = await fetch("/api/admin/payments/delete", {
+      method: "DELETE", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId }),
+    })
+    if (r.ok) { toast({ title: "Устгагдлаа", description: "Төлбөр устгагдлаа" }); loadPayments() }
+    else { const e = await r.json(); toast({ title: "Алдаа", description: e.error, variant: "destructive" }) }
+  }
 
   const confirmBank = async (paymentId: string, ref?: string) => {
     const r = await fetch("/api/payments/bank-transfer/confirm", {
@@ -454,13 +464,13 @@ export default function AdminPayments() {
                               <span className="text-xs text-gray-400">{ps.length} гүйлгээ</span>
                               <span className="text-xs font-semibold text-blue-600 ml-auto">₮{fmt(rev)}</span>
                             </div>
-                            {ps.map(p => <PaymentRow key={p._id} payment={p} onConfirmBank={confirmBank} />)}
+                            {ps.map(p => <PaymentRow key={p._id} payment={p} onConfirmBank={confirmBank} onDelete={deletePayment} />)}
                           </div>
                         )
                       })
                   })()
                 ) : (
-                  detailPayments.map(p => <PaymentRow key={p._id} payment={p} onConfirmBank={confirmBank} />)
+                  detailPayments.map(p => <PaymentRow key={p._id} payment={p} onConfirmBank={confirmBank} onDelete={deletePayment} />)
                 )}
               </div>
             )}
@@ -472,9 +482,10 @@ export default function AdminPayments() {
 }
 
 /* ─── Payment row ────────────────────────────────────────────────────────── */
-function PaymentRow({ payment, onConfirmBank }: {
+function PaymentRow({ payment, onConfirmBank, onDelete }: {
   payment: Payment
   onConfirmBank: (id: string, ref?: string) => void
+  onDelete: (id: string) => void
 }) {
   const time = new Date(payment.createdAt).toLocaleTimeString("mn-MN", { hour: "2-digit", minute: "2-digit" })
   return (
@@ -502,13 +513,24 @@ function PaymentRow({ payment, onConfirmBank }: {
           <StatusBadge status={payment.status} />
           <MethodBadge method={payment.paymentMethod} />
         </div>
-        {payment.paymentMethod === "bank_transfer" && payment.status === "pending" && (
-          <button
-            onClick={() => onConfirmBank(payment._id, payment.bankTransferReference)}
-            className="text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-          >
-            <CheckCircle className="w-3.5 h-3.5" /> Баталгаажуулах
-          </button>
+        {payment.status === "pending" && (
+          <div className="flex items-center gap-1.5">
+            {payment.paymentMethod === "bank_transfer" && (
+              <button
+                onClick={() => onConfirmBank(payment._id, payment.bankTransferReference)}
+                className="text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <CheckCircle className="w-3.5 h-3.5" /> Баталгаажуулах
+              </button>
+            )}
+            <button
+              onClick={() => onDelete(payment._id)}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              title="Устгах"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
       </div>
     </div>
