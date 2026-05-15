@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Users, Search, Plus, Edit, Trash2, Eye, BookOpen, GraduationCap } from "lucide-react"
+import { Users, Search, Plus, Edit, Trash2, Eye, BookOpen, GraduationCap, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface User {
@@ -273,6 +273,27 @@ export default function AdminUsers() {
     }
   }
 
+  const handleRevokeCourse = async (userId: string, courseId: string, courseTitle: string) => {
+    if (!confirm(`"${courseTitle}" хичээлийн хандах эрхийг хасах уу?`)) return
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/courses`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ courseId })
+      })
+      if (response.ok) {
+        toast({ title: "Амжилттай", description: `"${courseTitle}" эрх хасагдлаа` })
+        fetchUsers()
+      } else {
+        const error = await response.json()
+        toast({ title: "Алдаа", description: error.error || "Хасахад алдаа гарлаа", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Алдаа", description: "Хасахад алдаа гарлаа", variant: "destructive" })
+    }
+  }
+
   const openCourseAccessDialog = (user: User) => {
     setCourseAccessData({
       userId: user._id,
@@ -512,12 +533,21 @@ export default function AdminUsers() {
                               const expiry = user.enrollmentExpiries?.[course._id]
                               const isExpired = expiry && new Date(expiry) < new Date()
                               return (
-                                <Badge key={course._id} variant={isExpired ? "destructive" : "secondary"} className="text-xs">
-                                  {course.title}
-                                  {expiry
-                                    ? ` · ${isExpired ? "⛔" : "⏱"} ${new Date(expiry).toLocaleDateString("mn-MN")}`
-                                    : " · ♾"}
-                                </Badge>
+                                <span key={course._id} className="inline-flex items-center gap-1">
+                                  <Badge variant={isExpired ? "destructive" : "secondary"} className="text-xs">
+                                    {course.title}
+                                    {expiry
+                                      ? ` · ${isExpired ? "⛔" : "⏱"} ${new Date(expiry).toLocaleDateString("mn-MN")}`
+                                      : " · ♾"}
+                                  </Badge>
+                                  <button
+                                    onClick={() => handleRevokeCourse(user._id, course._id, course.title)}
+                                    className="ml-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Эрх хасах"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
                               )
                             })}
                           </div>

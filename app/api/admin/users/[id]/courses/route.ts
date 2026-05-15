@@ -55,6 +55,72 @@ export async function GET(
   }
 }
 
+// DELETE /api/admin/users/[id]/courses - Revoke access to a single course
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth()
+    let adminUser: { id: string; role: string } | null = null
+
+    if (session?.user?.email) {
+      const dbUser = await db.getUserByEmail(session.user.email)
+      if (dbUser?._id && dbUser.role === "admin") {
+        adminUser = { id: dbUser._id.toString(), role: dbUser.role }
+      }
+    }
+
+    if (!adminUser) {
+      const token = request.cookies.get("admin-token")?.value
+      if (token) adminUser = verifyToken(token)
+    }
+
+    if (!adminUser || adminUser.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const userId = parseObjectId(id)
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 })
+    }
+
+    const { courseId } = await request.json()
+    if (!courseId || !ObjectId.isValid(courseId)) {
+      return NextResponse.json({ error: "Invalid course id" }, { status: 400 })
+    }
+
+    const existingUser = await db.getUserById(userId)
+    if (!existingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const client = await (await import("@/lib/mongodb")).default
+    const db_conn = client.db("new-era-platform")
+
+    // Deactivate enrollment
+    await db_conn.collection("enrollments").updateMany(
+      { userId, courseId: new ObjectId(courseId) },
+      { $set: { isActive: false } }
+    )
+
+    // Remove from user's enrolledCourses array
+    const newCourseIds = (existingUser.enrolledCourses || [])
+      .map((c: any) => c.toString())
+      .filter((c: string) => c !== courseId)
+
+    await db.updateUser(userId, {
+      enrolledCourses: newCourseIds.map((c: string) => new ObjectId(c)) as any
+    })
+
+    return NextResponse.json({ success: true, message: "Course access revoked" })
+  } catch (error) {
+    console.error("Failed to revoke course access:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
 // PUT /api/admin/users/[id]/courses - Update user course access
 export async function PUT(
   request: NextRequest,
