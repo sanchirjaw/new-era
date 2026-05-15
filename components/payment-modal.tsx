@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, Loader2, RefreshCw, CheckCircle, ExternalLink } from "lucide-react"
+import { X, Loader2, RefreshCw, CheckCircle, ExternalLink, Copy, Check } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -28,7 +28,7 @@ interface BylInvoice {
 
 export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const { user } = useAuth()
-  const [method, setMethod] = useState<"qpay" | "bank">("qpay")
+  const [method, setMethod] = useState<"qpay" | "bank">("bank")
 
   // Shared
   const [paymentId, setPaymentId] = useState<string | null>(null)
@@ -38,23 +38,24 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   // QPay
   const [qpayLoading, setQpayLoading] = useState(false)
   const [qpayInvoice, setQpayInvoice] = useState<QPayInvoice | null>(null)
+  const [qpayError, setQpayError] = useState<string | null>(null)
   const qpayCreatingRef = useRef(false)
 
   // Bank (Byl invoice)
   const [bankLoading, setBankLoading] = useState(false)
   const [bylInvoice, setBylInvoice] = useState<BylInvoice | null>(null)
+  const [bankError, setBankError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const bankCreatingRef = useRef(false)
 
-  // Cleanup polling on unmount
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
 
-  // Auto-create when tab selected
   useEffect(() => {
-    if (method === "qpay" && !qpayInvoice && !paymentDone) createQPay()
+    if (method === "qpay" && !qpayInvoice && !qpayError && !paymentDone) createQPay()
   }, [method])
 
   useEffect(() => {
-    if (method === "bank" && !bylInvoice && !paymentDone) createBylInvoice()
+    if (method === "bank" && !bylInvoice && !bankError && !paymentDone) createBylInvoice()
   }, [method])
 
   /* ── QPay ── */
@@ -62,23 +63,26 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
     if (qpayCreatingRef.current) return
     qpayCreatingRef.current = true
     setQpayLoading(true)
+    setQpayError(null)
     try {
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course._id }),
       })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
         setQpayInvoice(data.qpayInvoice)
         setPaymentId(data.paymentId)
         startPolling(data.paymentId)
       } else {
-        const err = await res.json()
-        alert(err.error || "QPay invoice үүсгэхэд алдаа гарлаа")
+        setQpayError(data.error || "QPay invoice үүсгэхэд алдаа гарлаа")
+        // Auto-switch to bank after 2s
+        setTimeout(() => setMethod("bank"), 2000)
       }
     } catch {
-      alert("QPay invoice үүсгэхэд алдаа гарлаа")
+      setQpayError("QPay invoice үүсгэхэд алдаа гарлаа")
+      setTimeout(() => setMethod("bank"), 2000)
     } finally {
       setQpayLoading(false)
       qpayCreatingRef.current = false
@@ -90,30 +94,30 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
     if (bankCreatingRef.current) return
     bankCreatingRef.current = true
     setBankLoading(true)
+    setBankError(null)
     try {
       const res = await fetch("/api/payments/byl/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course._id, paymentMethod: "invoice" }),
       })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
         setBylInvoice(data.bylInvoice)
         setPaymentId(data.paymentId)
         startPolling(data.paymentId)
       } else {
-        const err = await res.json()
-        alert(err.error || "Invoice үүсгэхэд алдаа гарлаа")
+        setBankError(data.error || "Нэхэмжлэл үүсгэхэд алдаа гарлаа")
       }
     } catch {
-      alert("Invoice үүсгэхэд алдаа гарлаа")
+      setBankError("Нэхэмжлэл үүсгэхэд алдаа гарлаа")
     } finally {
       setBankLoading(false)
       bankCreatingRef.current = false
     }
   }
 
-  /* ── Shared polling ── */
+  /* ── Polling ── */
   const startPolling = (pid: string) => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     let count = 0
@@ -138,11 +142,19 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
         }
       } catch {}
       count++
-      if (count >= 120) clearInterval(intervalRef.current!) // 6 min max
+      if (count >= 120) clearInterval(intervalRef.current!)
     }, 3000)
   }
 
-  /* ── Success state ── */
+  const copyRef = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
+
+  /* ── Success ── */
   if (paymentDone) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -198,9 +210,28 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                   <p className="text-sm text-gray-500">QPay invoice үүсгэж байна...</p>
                 </div>
+              ) : qpayError ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-2">
+                    <p className="text-sm font-semibold text-red-600">QPay боломжгүй байна</p>
+                    <p className="text-xs text-red-400">{qpayError}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { setQpayError(null); qpayCreatingRef.current = false; createQPay() }}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" /> Дахин оролдох
+                  </Button>
+                  <button
+                    onClick={() => setMethod("bank")}
+                    className="w-full text-sm text-primary hover:underline py-1"
+                  >
+                    Банк шилжүүлгээр төлөх →
+                  </button>
+                </div>
               ) : qpayInvoice ? (
                 <div className="space-y-4">
-                  {/* QR code */}
                   {qpayInvoice.qr_image && (
                     <div className="flex justify-center">
                       <img
@@ -210,26 +241,16 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                       />
                     </div>
                   )}
-                  <p className="text-center text-sm text-gray-500">
-                    Банкны апп-аараа QR кодыг уншуулна уу
-                  </p>
+                  <p className="text-center text-sm text-gray-500">Банкны апп-аараа QR кодыг уншуулна уу</p>
 
-                  {/* Bank app deep links */}
                   {qpayInvoice.urls && qpayInvoice.urls.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-gray-500 text-center">Эсвэл аппаа сонгоно уу</p>
                       <div className="grid grid-cols-3 gap-2">
                         {qpayInvoice.urls.slice(0, 6).map((u) => (
-                          <a
-                            key={u.name}
-                            href={u.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-primary/40 hover:bg-primary/5 transition-colors"
-                          >
-                            {u.logo && (
-                              <img src={u.logo} alt={u.name} className="w-8 h-8 rounded-md object-cover" />
-                            )}
+                          <a key={u.name} href={u.link} target="_blank" rel="noopener noreferrer"
+                            className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                            {u.logo && <img src={u.logo} alt={u.name} className="w-8 h-8 rounded-md object-cover" />}
                             <span className="text-[10px] text-gray-600 text-center leading-tight">{u.name}</span>
                           </a>
                         ))}
@@ -241,18 +262,13 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Төлбөр хүлээж байна...</span>
                   </div>
-
-                  <button
-                    onClick={() => { setQpayInvoice(null); qpayCreatingRef.current = false; createQPay() }}
-                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
-                  >
+                  <button onClick={() => { setQpayInvoice(null); qpayCreatingRef.current = false; createQPay() }}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1">
                     <RefreshCw className="w-3.5 h-3.5" /> Шинэ QR үүсгэх
                   </button>
                 </div>
               ) : (
-                <Button onClick={createQPay} className="w-full" size="lg">
-                  QPay invoice үүсгэх
-                </Button>
+                <Button onClick={createQPay} className="w-full" size="lg">QPay invoice үүсгэх</Button>
               )}
             </div>
           )}
@@ -265,39 +281,53 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                   <p className="text-sm text-gray-500">Нэхэмжлэл үүсгэж байна...</p>
                 </div>
+              ) : bankError ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-2">
+                    <p className="text-sm font-semibold text-red-600">Алдаа гарлаа</p>
+                    <p className="text-xs text-red-400">{bankError}</p>
+                  </div>
+                  <Button variant="outline" className="w-full"
+                    onClick={() => { setBankError(null); bankCreatingRef.current = false; createBylInvoice() }}>
+                    <RefreshCw className="w-4 h-4 mr-2" /> Дахин оролдох
+                  </Button>
+                </div>
               ) : bylInvoice ? (
                 <div className="space-y-4">
-                  {/* Reference number — main info */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-500 font-medium">Дүн</span>
-                      <span className="font-black text-blue-900 text-base">₮{course.price.toLocaleString()}</span>
+                  {/* Reference — big and prominent */}
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 text-center space-y-2">
+                    <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Гүйлгээний утга</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-3xl font-black text-blue-900 tracking-widest">{bylInvoice.number}</span>
+                      <button
+                        onClick={() => copyRef(bylInvoice.number)}
+                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-600 bg-white border border-blue-200 rounded-lg px-2 py-1 transition-colors"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? "Хуулагдлаа" : "Хуулах"}
+                      </button>
                     </div>
-                    <div className="border-t border-blue-100 pt-3">
-                      <p className="text-blue-500 font-medium mb-1">Гүйлгээний утга (заавал)</p>
-                      <div className="bg-white rounded-lg px-3 py-2 font-mono font-bold text-blue-900 text-base tracking-wider border border-blue-200 text-center select-all">
-                        {bylInvoice.number}
-                      </div>
-                      <p className="text-xs text-blue-400 mt-1 text-center">Дарж хуулах боломжтой</p>
+                    <p className="text-xs text-blue-400">Дээрх тоог гүйлгээний утганд заавал бичнэ үү</p>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Дүн</span>
+                      <span className="font-bold text-gray-900">₮{course.price.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Byl payment page link */}
                   {bylInvoice.url && (
-                    <a
-                      href={bylInvoice.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
+                    <a href={bylInvoice.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                       <ExternalLink className="w-4 h-4" />
-                      Нэхэмжлэлийн хуудас харах
+                      Нэхэмжлэлийн дэлгэрэнгүй харах
                     </a>
                   )}
 
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 text-center">
-                    Дээрх утгыг гүйлгээний утганд бичиж банкаар шилжүүлнэ үү.<br />
-                    Шилжүүлэг баталгаажсаны дараа <strong>автоматаар</strong> элсэлт нэмэгдэнэ.
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 text-center leading-relaxed">
+                    Гүйлгээний утганд <strong>{bylInvoice.number}</strong> бичиж банкаар шилжүүлнэ үү.<br />
+                    Баталгаажсаны дараа <strong>автоматаар</strong> элсэлт нэмэгдэнэ.
                   </div>
 
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
@@ -305,17 +335,13 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                     <span>Шилжүүлэг хүлээж байна...</span>
                   </div>
 
-                  <button
-                    onClick={() => { setBylInvoice(null); bankCreatingRef.current = false; createBylInvoice() }}
-                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
-                  >
+                  <button onClick={() => { setBylInvoice(null); bankCreatingRef.current = false; createBylInvoice() }}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1">
                     <RefreshCw className="w-3.5 h-3.5" /> Шинэ нэхэмжлэл үүсгэх
                   </button>
                 </div>
               ) : (
-                <Button onClick={createBylInvoice} className="w-full" size="lg">
-                  Нэхэмжлэл үүсгэх
-                </Button>
+                <Button onClick={createBylInvoice} className="w-full" size="lg">Нэхэмжлэл үүсгэх</Button>
               )}
             </div>
           )}
