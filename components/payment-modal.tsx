@@ -74,6 +74,8 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
       if (res.ok) {
         setCheckout(data.bylCheckout)
         setPaymentId(data.paymentId)
+        // Auto-open payment page in new tab
+        if (data.bylCheckout?.url) window.open(data.bylCheckout.url, "_blank")
         startPolling(data.paymentId)
       } else {
         setQpayError(data.error || "Checkout үүсгэхэд алдаа гарлаа")
@@ -147,11 +149,6 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
   }
 
-  // QR code via free API (no extra dependency needed)
-  const qrUrl = checkout?.url
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(checkout.url)}`
-    : null
-
   /* ── Success ── */
   if (paymentDone) {
     return (
@@ -219,42 +216,41 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                     <RefreshCw className="w-4 h-4 mr-2" /> Дахин оролдох
                   </Button>
                 </div>
-              ) : checkout && qrUrl ? (
+              ) : checkout ? (
                 <div className="space-y-4">
-                  {/* QR code */}
-                  <div className="flex justify-center">
-                    <img
-                      src={qrUrl}
-                      alt="QPay QR"
-                      className="w-52 h-52 rounded-xl border-2 border-gray-100"
-                    />
+                  {/* Status card */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-center space-y-3">
+                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                      <span className="text-2xl">📱</span>
+                    </div>
+                    <p className="font-semibold text-blue-900">QPay хуудас нээгдлээ</p>
+                    <p className="text-sm text-blue-600">
+                      Шинэ tab-д QPay QR код харагдана.<br />
+                      Банкны аппаараа уншуулж төлнө үү.
+                    </p>
                   </div>
 
-                  <p className="text-center text-sm text-gray-500">
-                    Банкны апп-аараа QR кодыг уншуулна уу
-                  </p>
-
-                  {/* Open in browser button */}
+                  {/* Reopen button */}
                   <a
                     href={checkout.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Браузерт нээж төлөх
+                    QPay хуудас дахин нээх
                   </a>
 
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Төлбөр хүлээж байна...</span>
+                    <span>Төлбөр баталгаажихыг хүлээж байна...</span>
                   </div>
 
                   <button
                     onClick={() => { setCheckout(null); qpayCreatingRef.current = false; createCheckout() }}
                     className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" /> Шинэ QR үүсгэх
+                    <RefreshCw className="w-3.5 h-3.5" /> Шинэ checkout үүсгэх
                   </button>
                 </div>
               ) : null}
