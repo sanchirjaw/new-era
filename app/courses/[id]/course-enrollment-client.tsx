@@ -31,9 +31,8 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
 
     const checkPaymentAndEnrollment = async () => {
         try {
-            // Start checking immediately - no initial delay
             let attempts = 0
-            const maxAttempts = 30 // Total 15 seconds max (30 * 500ms)
+            const maxAttempts = 40 // 40 * 1500ms = 60 sec max
 
             while (attempts < maxAttempts) {
                 const response = await fetch('/api/payments/verify-and-enroll', {
@@ -51,7 +50,6 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                 if (response.ok) {
                     const data = await response.json()
                     if (data.enrolled) {
-                        // Refresh user data to get latest enrollment
                         await refreshUser()
                         setCheckingPayment(false)
 
@@ -61,13 +59,13 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                         url.searchParams.delete('t')
                         window.history.replaceState({}, '', url.toString())
 
-                        return // Success, exit early
+                        return
                     }
                 }
 
                 attempts++
                 if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, 500))
+                    await new Promise(resolve => setTimeout(resolve, 1500))
                 }
             }
 
@@ -236,7 +234,12 @@ export function CourseEnrollmentClient({ course }: CourseEnrollmentClientProps) 
                     course={course}
                     onClose={() => {
                         setShowPaymentModal(false)
-                        refreshUser() // Refresh user data after payment modal closes
+                        // After closing modal, check if payment was completed
+                        const isAlreadyEnrolled = course && user?.enrolledCourses?.includes(course._id || '')
+                        if (!isAlreadyEnrolled) {
+                            setCheckingPayment(true)
+                            checkPaymentAndEnrollment()
+                        }
                     }}
                 />
             )}
