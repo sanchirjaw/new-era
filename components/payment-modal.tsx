@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, Loader2, ExternalLink } from "lucide-react"
+import { X, Loader2, RefreshCw, CheckCircle } from "lucide-react"
 import type { Course } from "@/lib/types"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -12,334 +12,269 @@ interface PaymentModalProps {
   onClose: () => void
 }
 
-interface BylCheckout {
-  id: number
-  url: string
-  status: string
-  amount_total: number
+interface QPayInvoice {
+  invoice_id: string
+  qr_image: string
+  qr_text: string
+  urls: Array<{ name: string; description: string; logo: string; link: string }>
 }
 
 export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const { user } = useAuth()
-  const [loading, setLoading] = useState(false)
-  const [bylCheckout, setBylCheckout] = useState<BylCheckout | null>(null)
+  const [method, setMethod] = useState<"qpay" | "bank">("qpay")
+
+  // QPay state
+  const [qpayLoading, setQpayLoading] = useState(false)
+  const [qpayInvoice, setQpayInvoice] = useState<QPayInvoice | null>(null)
   const [paymentId, setPaymentId] = useState<string | null>(null)
-  const [paymentStatus, setPaymentStatus] = useState<string>("pending")
-  const [hasRedirected, setHasRedirected] = useState(false)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"byl" | "bank_transfer">("byl")
-  const [bankTransferData, setBankTransferData] = useState<any>(null)
-  const [bankTransferCreated, setBankTransferCreated] = useState(false)
+  const [paymentDone, setPaymentDone] = useState(false)
   const creatingRef = useRef(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Bank transfer state
+  const [bankLoading, setBankLoading] = useState(false)
+  const [bankCreated, setBankCreated] = useState(false)
+  const [bankRef, setBankRef] = useState("")
+
   // Cleanup interval on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [])
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
 
-  // Automatically create Byl payment when modal opens and byl is selected
+  // Auto-create QPay invoice when modal opens
   useEffect(() => {
-    if (selectedPaymentMethod === "byl" && !bylCheckout && !hasRedirected) {
-      createBylPayment()
-    }
-  }, [selectedPaymentMethod])
+    if (method === "qpay" && !qpayInvoice && !paymentDone) createQPay()
+  }, [method])
 
-  const createBylPayment = async () => {
+  const createQPay = async () => {
     if (creatingRef.current) return
     creatingRef.current = true
-    setLoading(true)
+    setQpayLoading(true)
     try {
-      const response = await fetch("/api/payments/byl/create", {
+      const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: course._id,
-          paymentMethod: "checkout"
-        }),
+        body: JSON.stringify({ courseId: course._id }),
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setBylCheckout(data.bylCheckout)
+      if (res.ok) {
+        const data = await res.json()
+        setQpayInvoice(data.qpayInvoice)
         setPaymentId(data.paymentId)
-        setHasRedirected(true)
-        creatingRef.current = false // allow retry if needed
-        window.open(data.bylCheckout.url, "_blank")
-        startPaymentCheck(data.paymentId)
+        startPolling(data.paymentId)
       } else {
-        const error = await response.json()
-        creatingRef.current = false
-        alert(error.error || "Төлбөр үүсгэхэд алдаа гарлаа")
+        const err = await res.json()
+        alert(err.error || "QPay invoice үүсгэхэд алдаа гарлаа")
       }
-    } catch (error) {
-      console.error("Payment error:", error)
-      alert("Төлбөр үүсгэхэд алдаа гарлаа")
-      creatingRef.current = false
+    } catch {
+      alert("QPay invoice үүсгэхэд алдаа гарлаа")
     } finally {
-      setLoading(false)
+      setQpayLoading(false)
+      creatingRef.current = false
     }
   }
 
-  const startPaymentCheck = (paymentId: string) => {
-    // Clear any existing interval
+  const startPolling = (pid: string) => {
     if (intervalRef.current) clearInterval(intervalRef.current)
-
-    let checkCount = 0
-    const maxChecks = 60 // 3 minutes max (60 * 3000ms)
-
+    let count = 0
     intervalRef.current = setInterval(async () => {
       try {
-        const response = await fetch("/api/payments/check", {
+        const res = await fetch("/api/payments/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ paymentId }),
+          body: JSON.stringify({ paymentId: pid }),
         })
-
-        if (response.ok) {
-          const data = await response.json()
-          setPaymentStatus(data.status)
-
+        if (res.ok) {
+          const data = await res.json()
           if (data.status === "completed") {
-            if (intervalRef.current) clearInterval(intervalRef.current)
-            onClose()
-            window.location.href = window.location.pathname + "?payment_success=true&t=" + Date.now()
-            return
+            clearInterval(intervalRef.current!)
+            setPaymentDone(true)
+            setTimeout(() => {
+              onClose()
+              window.location.href = window.location.pathname + "?payment_success=true&t=" + Date.now()
+            }, 1200)
           }
         }
-
-        checkCount++
-        if (checkCount >= maxChecks) {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-        }
-      } catch (error) {
-        console.error("Payment check error:", error)
-        checkCount++
-        if (checkCount >= maxChecks) {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-        }
-      }
-    }, 3000) // Check every 3 seconds
+      } catch {}
+      count++
+      if (count >= 60) clearInterval(intervalRef.current!)
+    }, 3000)
   }
 
-  const reopenPaymentPage = () => {
-    if (bylCheckout) {
-      window.open(bylCheckout.url, "_blank")
-    }
-  }
-
-  const createBankTransferPayment = async () => {
-    setLoading(true)
+  const createBankTransfer = async () => {
+    setBankLoading(true)
     try {
-      const response = await fetch("/api/payments/bank-transfer/create", {
+      const res = await fetch("/api/payments/bank-transfer/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: course._id,
-        }),
+        body: JSON.stringify({ courseId: course._id }),
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setPaymentId(data.paymentId)
-        setBankTransferData(data)
-        setBankTransferCreated(true)
+      if (res.ok) {
+        const data = await res.json()
+        setBankRef(data.reference || "")
+        setBankCreated(true)
       } else {
-        const error = await response.json()
-        alert(error.error || "Төлбөр үүсгэхэд алдаа гарлаа")
+        const err = await res.json()
+        alert(err.error || "Төлбөр бүртгэхэд алдаа гарлаа")
       }
-    } catch (error) {
-      console.error("Payment error:", error)
-      alert("Төлбөр үүсгэхэд алдаа гарлаа")
+    } catch {
+      alert("Төлбөр бүртгэхэд алдаа гарлаа")
     } finally {
-      setLoading(false)
+      setBankLoading(false)
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Төлбөр төлөлт</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">Төлбөр төлөлт</CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </CardHeader>
-        <CardContent className="space-y-6">
+
+        <CardContent className="space-y-5">
+          {/* Course + price */}
           <div className="text-center">
-            <h3 className="font-semibold text-lg mb-2">{course.title}</h3>
-            <div className="text-2xl font-bold text-primary mt-2">₮{course.price.toLocaleString()}</div>
+            <p className="font-semibold text-base">{course.title}</p>
+            <p className="text-2xl font-black text-primary mt-1">₮{course.price.toLocaleString()}</p>
           </div>
 
-          {/* Payment Method Selection */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-center">Төлбөрийн арга сонгох</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant={selectedPaymentMethod === "byl" ? "default" : "outline"}
-                onClick={() => setSelectedPaymentMethod("byl")}
-                className="w-full"
-              >
-                Онлайн төлбөр
-              </Button>
-              <Button
-                variant={selectedPaymentMethod === "bank_transfer" ? "default" : "outline"}
-                onClick={() => setSelectedPaymentMethod("bank_transfer")}
-                className="w-full"
-              >
-                Банк шилжүүлэг
-              </Button>
-            </div>
+          {/* Method tabs */}
+          <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
+            <button
+              onClick={() => setMethod("qpay")}
+              className={`py-2 rounded-lg text-sm font-semibold transition-all ${method === "qpay" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              📱 QPay
+            </button>
+            <button
+              onClick={() => setMethod("bank")}
+              className={`py-2 rounded-lg text-sm font-semibold transition-all ${method === "bank" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              🏦 Банк шилжүүлэг
+            </button>
           </div>
 
-          {/* Payment Content */}
-          {selectedPaymentMethod === "byl" && (
-            <>
-              {loading ? (
-                <div className="text-center space-y-4">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto" />
-                  <p>Төлбөр үүсгэж байна...</p>
+          {/* ── QPay ── */}
+          {method === "qpay" && (
+            <div className="space-y-4">
+              {paymentDone ? (
+                <div className="text-center py-6 space-y-2">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+                  <p className="font-semibold text-green-700">Төлбөр амжилттай!</p>
+                  <p className="text-sm text-gray-500">Хичээлд бүртгэж байна...</p>
                 </div>
-              ) : bylCheckout ? (
+              ) : qpayLoading ? (
+                <div className="text-center py-8 space-y-3">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                  <p className="text-sm text-gray-500">QPay invoice үүсгэж байна...</p>
+                </div>
+              ) : qpayInvoice ? (
                 <div className="space-y-4">
-                  <div className="text-center">
-                    <h4 className="font-medium text-lg mb-2">Byl төлбөрийн хуудас</h4>
-                    <div className="text-sm text-gray-600 mb-4">
-                      {paymentStatus === "completed"
-                        ? "Төлбөр амжилттай төлөгдлөө!"
-                        : "Төлбөрийн хуудас нээгдлээ. Хэрэв автоматаар нээгдээгүй бол доорх товчлуурыг дарна уу."}
+                  {/* QR code */}
+                  {qpayInvoice.qr_image && (
+                    <div className="flex justify-center">
+                      <img
+                        src={`data:image/png;base64,${qpayInvoice.qr_image}`}
+                        alt="QPay QR"
+                        className="w-48 h-48 rounded-lg border"
+                      />
                     </div>
-                  </div>
+                  )}
+                  <p className="text-center text-sm text-gray-500">
+                    Банкны апп-аараа QR кодыг уншуулна уу
+                  </p>
 
-                  <div className="text-center space-y-3">
-                    <Button
-                      onClick={reopenPaymentPage}
-                      className="w-full bg-primary hover:bg-primary/90"
-                      size="lg"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Төлбөрийн хуудас нээх
-                    </Button>
-
-                    <Button
-                      onClick={createBylPayment}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Шинэ төлбөр үүсгэх
-                    </Button>
-                  </div>
-
-                  {paymentStatus === "pending" && (
-                    <div className="text-center">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Төлбөр хүлээж байна...</p>
-                      <p className="text-xs text-gray-500 mt-1">Төлбөр баталгаажсан даруй хичээлд бүртгэгдэх болно</p>
+                  {/* Bank app deep links */}
+                  {qpayInvoice.urls && qpayInvoice.urls.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 text-center">Эсвэл аппаа сонгоно уу</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {qpayInvoice.urls.slice(0, 6).map((u) => (
+                          <a
+                            key={u.name}
+                            href={u.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                          >
+                            {u.logo && (
+                              <img src={u.logo} alt={u.name} className="w-8 h-8 rounded-md object-cover" />
+                            )}
+                            <span className="text-[10px] text-gray-600 text-center leading-tight">{u.name}</span>
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  <div className="text-center text-sm text-gray-600">
-                    <p>Төлбөр төлөгдсөний дараа автоматаар хичээлд бүртгэгдэх болно.</p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Төлбөр хүлээж байна...</span>
                   </div>
+
+                  <button
+                    onClick={() => { setQpayInvoice(null); creatingRef.current = false; createQPay() }}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Шинэ QR үүсгэх
+                  </button>
                 </div>
               ) : (
-                <div className="text-center space-y-4">
-                  <Button
-                    onClick={createBylPayment}
-                    disabled={loading}
-                    className="w-full bg-primary hover:bg-primary/90"
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Төлбөр үүсгэж байна...
-                      </>
-                    ) : (
-                      "Онлайн төлбөр төлөх"
-                    )}
-                  </Button>
-                </div>
+                <Button onClick={createQPay} className="w-full" size="lg">
+                  QPay invoice үүсгэх
+                </Button>
               )}
-            </>
+            </div>
           )}
 
-          {selectedPaymentMethod === "bank_transfer" && (
+          {/* ── Bank transfer ── */}
+          {method === "bank" && (
             <div className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">Банкны мэдээлэл</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-blue-600 dark:text-blue-300">Банк:</span>
-                    <span className="font-medium text-blue-800 dark:text-blue-200">TDB (Худалдаа хөгжлийн банк)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-600 dark:text-blue-300">Данс:</span>
-                    <span className="font-mono font-medium text-blue-800 dark:text-blue-200">MN970004000418067243</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-600 dark:text-blue-300">Дүн:</span>
-                    <span className="font-bold text-blue-800 dark:text-blue-200">₮{course.price.toLocaleString()}</span>
-                  </div>
-                  {bankTransferData?.reference && (
-                    <div className="flex justify-between">
-                      <span className="text-blue-600 dark:text-blue-300">Лавлагаа:</span>
-                      <span className="font-mono font-medium text-blue-800 dark:text-blue-200">{bankTransferData.reference}</span>
-                    </div>
-                  )}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-blue-500">Банк</span>
+                  <span className="font-semibold text-blue-900">TDB (Худалдаа хөгжлийн банк)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-500">Дансны дугаар</span>
+                  <span className="font-mono font-semibold text-blue-900">MN970004000418067243</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-500">Дүн</span>
+                  <span className="font-bold text-blue-900">₮{course.price.toLocaleString()}</span>
                 </div>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800 mb-4">
-                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Гүйлгээний утга:</h4>
-                <div className="text-sm text-green-700 dark:text-green-300 mb-2">
-                  <p className="mb-2">Гүйлгээ хийхдээ дараах мэдээллийг <strong>заавал</strong> бичнэ үү:</p>
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border font-mono text-sm">
-                    {user?.name} - {user?.email} - {course.title}
-                  </div>
+              <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-sm space-y-1">
+                <p className="font-semibold text-green-800">Гүйлгээний утга:</p>
+                <div className="bg-white rounded-lg px-3 py-2 font-mono text-sm border">
+                  {user?.name} - {user?.email} - {course.title}
                 </div>
+                <p className="text-xs text-green-600">Дээрх мэдээллийг гүйлгээний утганд заавал бичнэ үү</p>
               </div>
 
-              <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-                <h4 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">Төлбөр шилжүүлсний дараа:</h4>
-                <div className="text-sm text-orange-700 dark:text-orange-300">
-                  <p className="mb-2">Төлбөр шилжүүлсний дараа доорх утасны дугаар руу залгаж баталгаажуулна уу:</p>
-                  <div className="flex items-center justify-center bg-orange-100 dark:bg-orange-800/50 p-3 rounded-lg">
-                    <span className="text-lg font-bold text-orange-800 dark:text-orange-200">99638369</span>
-                  </div>
-                  <p className="mt-2 text-xs">Гүйлгээний утганд нэр, имэйл заавал бичсэн эсэхийг шалгана уу!</p>
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-sm text-center">
+                <p className="text-orange-700 font-semibold mb-1">Шилжүүлсний дараа залгана уу</p>
+                <p className="text-2xl font-black text-orange-600">99638369</p>
+              </div>
+
+              {bankCreated ? (
+                <div className="w-full bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-green-700 text-sm font-medium text-center">
+                  ✓ Төлбөр бүртгэгдлээ — шилжүүлсний дараа утас руу залгана уу
                 </div>
-              </div>
-
-              <div className="text-center space-y-3">
-                {bankTransferCreated ? (
-                  <div className="w-full bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-green-700 text-sm font-medium text-center">
-                    ✓ Төлбөр бүртгэгдлээ — шилжүүлэг хийсний дараа утас руу залгана уу
-                  </div>
-                ) : (
-                  <Button
-                    onClick={createBankTransferPayment}
-                    disabled={loading}
-                    className="w-full bg-primary hover:bg-primary/90"
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Төлбөр бүртгэж байна...
-                      </>
-                    ) : (
-                      "Банк шилжүүлгийн төлбөр бүртгэх"
-                    )}
-                  </Button>
-                )}
-              </div>
-
-              <div className="text-center text-sm text-gray-600">
-                <p>Банк шилжүүлэг хийсний дараа утасны дугаар руу залгаж баталгаажуулсны дараа хичээлд бүртгэгдэх болно.</p>
-              </div>
+              ) : (
+                <Button
+                  onClick={createBankTransfer}
+                  disabled={bankLoading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {bankLoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Бүртгэж байна...</>
+                  ) : "Банк шилжүүлгийн төлбөр бүртгэх"}
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
