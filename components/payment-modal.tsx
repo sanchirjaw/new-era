@@ -28,6 +28,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const [hasRedirected, setHasRedirected] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"byl" | "bank_transfer">("byl")
   const [bankTransferData, setBankTransferData] = useState<any>(null)
+  const [bankTransferCreated, setBankTransferCreated] = useState(false)
   const creatingRef = useRef(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -144,7 +145,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
         const data = await response.json()
         setPaymentId(data.paymentId)
         setBankTransferData(data)
-        alert("Банкны шилжүүлгийн төлбөр үүсгэгдлээ. Төлбөр шилжүүлсний дараа утасны дугаар руу залгана уу.")
+        setBankTransferCreated(true)
       } else {
         const error = await response.json()
         alert(error.error || "Төлбөр үүсгэхэд алдаа гарлаа")
@@ -313,21 +314,27 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
               </div>
 
               <div className="text-center space-y-3">
-                <Button
-                  onClick={createBankTransferPayment}
-                  disabled={loading}
-                  className="w-full bg-primary hover:bg-primary/90"
-                  size="lg"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Төлбөр бүртгэж байна...
-                    </>
-                  ) : (
-                    "Банк шилжүүлгийн төлбөр бүртгэх"
-                  )}
-                </Button>
+                {bankTransferCreated ? (
+                  <div className="w-full bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-green-700 text-sm font-medium text-center">
+                    ✓ Төлбөр бүртгэгдлээ — шилжүүлэг хийсний дараа утас руу залгана уу
+                  </div>
+                ) : (
+                  <Button
+                    onClick={createBankTransferPayment}
+                    disabled={loading}
+                    className="w-full bg-primary hover:bg-primary/90"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Төлбөр бүртгэж байна...
+                      </>
+                    ) : (
+                      "Банк шилжүүлгийн төлбөр бүртгэх"
+                    )}
+                  </Button>
+                )}
               </div>
 
               <div className="text-center text-sm text-gray-600">
