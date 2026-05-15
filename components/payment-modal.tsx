@@ -28,7 +28,7 @@ interface BylInvoice {
 
 export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const { user } = useAuth()
-  const [method, setMethod] = useState<"qpay" | "bank">("bank")
+  const [method, setMethod] = useState<"qpay" | "bank">("qpay")
 
   // Shared
   const [paymentId, setPaymentId] = useState<string | null>(null)
@@ -77,12 +77,9 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
         startPolling(data.paymentId)
       } else {
         setQpayError(data.error || "QPay invoice үүсгэхэд алдаа гарлаа")
-        // Auto-switch to bank after 2s
-        setTimeout(() => setMethod("bank"), 2000)
       }
     } catch {
       setQpayError("QPay invoice үүсгэхэд алдаа гарлаа")
-      setTimeout(() => setMethod("bank"), 2000)
     } finally {
       setQpayLoading(false)
       qpayCreatingRef.current = false
