@@ -166,7 +166,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-lg max-h-[95vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-lg">Төлбөр төлөлт</CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -217,41 +217,34 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                   </Button>
                 </div>
               ) : checkout ? (
-                <div className="space-y-4">
-                  {/* Status card */}
-                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-center space-y-3">
-                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                      <span className="text-2xl">📱</span>
+                <div className="space-y-3">
+                  {/* Embedded Byl checkout iframe */}
+                  <div className="rounded-xl overflow-hidden border border-gray-100" style={{ height: 480 }}>
+                    <iframe
+                      src={checkout.url}
+                      className="w-full h-full"
+                      title="QPay"
+                      allow="payment"
+                      onError={() => window.open(checkout.url, "_blank")}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Хүлээж байна...</span>
                     </div>
-                    <p className="font-semibold text-blue-900">QPay хуудас нээгдлээ</p>
-                    <p className="text-sm text-blue-600">
-                      Шинэ tab-д QPay QR код харагдана.<br />
-                      Банкны аппаараа уншуулж төлнө үү.
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <a href={checkout.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                        <ExternalLink className="w-3.5 h-3.5" /> Шинэ tab
+                      </a>
+                      <button onClick={() => { setCheckout(null); qpayCreatingRef.current = false; createCheckout() }}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                        <RefreshCw className="w-3.5 h-3.5" /> Шинэчлэх
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Reopen button */}
-                  <a
-                    href={checkout.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    QPay хуудас дахин нээх
-                  </a>
-
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Төлбөр баталгаажихыг хүлээж байна...</span>
-                  </div>
-
-                  <button
-                    onClick={() => { setCheckout(null); qpayCreatingRef.current = false; createCheckout() }}
-                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Шинэ checkout үүсгэх
-                  </button>
                 </div>
               ) : null}
             </div>
