@@ -12,11 +12,10 @@ interface PaymentModalProps {
   onClose: () => void
 }
 
-interface QPayInvoice {
-  invoice_id: string
-  qr_image: string
-  qr_text: string
-  urls: Array<{ name: string; description: string; logo: string; link: string }>
+interface BylCheckout {
+  id: number
+  url: string
+  status: string
 }
 
 interface BylInvoice {
@@ -35,9 +34,9 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   const [paymentDone, setPaymentDone] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // QPay
+  // QPay (Byl checkout → Quick QR)
   const [qpayLoading, setQpayLoading] = useState(false)
-  const [qpayInvoice, setQpayInvoice] = useState<QPayInvoice | null>(null)
+  const [checkout, setCheckout] = useState<BylCheckout | null>(null)
   const [qpayError, setQpayError] = useState<string | null>(null)
   const qpayCreatingRef = useRef(false)
 
@@ -50,36 +49,37 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
 
+  // Auto-create on tab switch
   useEffect(() => {
-    if (method === "qpay" && !qpayInvoice && !qpayError && !paymentDone) createQPay()
+    if (method === "qpay" && !checkout && !qpayError && !paymentDone) createCheckout()
   }, [method])
 
   useEffect(() => {
     if (method === "bank" && !bylInvoice && !bankError && !paymentDone) createBylInvoice()
   }, [method])
 
-  /* ── QPay ── */
-  const createQPay = async () => {
+  /* ── Byl checkout (QPay QR) ── */
+  const createCheckout = async () => {
     if (qpayCreatingRef.current) return
     qpayCreatingRef.current = true
     setQpayLoading(true)
     setQpayError(null)
     try {
-      const res = await fetch("/api/payments/create", {
+      const res = await fetch("/api/payments/byl/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: course._id }),
+        body: JSON.stringify({ courseId: course._id, paymentMethod: "checkout" }),
       })
       const data = await res.json()
       if (res.ok) {
-        setQpayInvoice(data.qpayInvoice)
+        setCheckout(data.bylCheckout)
         setPaymentId(data.paymentId)
         startPolling(data.paymentId)
       } else {
-        setQpayError(data.error || "QPay invoice үүсгэхэд алдаа гарлаа")
+        setQpayError(data.error || "Checkout үүсгэхэд алдаа гарлаа")
       }
     } catch {
-      setQpayError("QPay invoice үүсгэхэд алдаа гарлаа")
+      setQpayError("Checkout үүсгэхэд алдаа гарлаа")
     } finally {
       setQpayLoading(false)
       qpayCreatingRef.current = false
@@ -144,12 +144,13 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
   }
 
   const copyRef = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {}
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
   }
+
+  // QR code via free API (no extra dependency needed)
+  const qrUrl = checkout?.url
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(checkout.url)}`
+    : null
 
   /* ── Success ── */
   if (paymentDone) {
@@ -199,88 +200,78 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
             </button>
           </div>
 
-          {/* ── QPay ── */}
+          {/* ── QPay tab ── */}
           {method === "qpay" && (
             <div className="space-y-4">
               {qpayLoading ? (
-                <div className="text-center py-8 space-y-3">
+                <div className="text-center py-10 space-y-3">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                  <p className="text-sm text-gray-500">QPay invoice үүсгэж байна...</p>
+                  <p className="text-sm text-gray-500">QR код үүсгэж байна...</p>
                 </div>
               ) : qpayError ? (
                 <div className="space-y-3">
-                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-2">
-                    <p className="text-sm font-semibold text-red-600">QPay боломжгүй байна</p>
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-1">
+                    <p className="text-sm font-semibold text-red-600">Алдаа гарлаа</p>
                     <p className="text-xs text-red-400">{qpayError}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => { setQpayError(null); qpayCreatingRef.current = false; createQPay() }}
-                  >
+                  <Button variant="outline" className="w-full"
+                    onClick={() => { setQpayError(null); qpayCreatingRef.current = false; createCheckout() }}>
                     <RefreshCw className="w-4 h-4 mr-2" /> Дахин оролдох
                   </Button>
-                  <button
-                    onClick={() => setMethod("bank")}
-                    className="w-full text-sm text-primary hover:underline py-1"
-                  >
-                    Банк шилжүүлгээр төлөх →
-                  </button>
                 </div>
-              ) : qpayInvoice ? (
+              ) : checkout && qrUrl ? (
                 <div className="space-y-4">
-                  {qpayInvoice.qr_image && (
-                    <div className="flex justify-center">
-                      <img
-                        src={`data:image/png;base64,${qpayInvoice.qr_image}`}
-                        alt="QPay QR"
-                        className="w-48 h-48 rounded-lg border"
-                      />
-                    </div>
-                  )}
-                  <p className="text-center text-sm text-gray-500">Банкны апп-аараа QR кодыг уншуулна уу</p>
+                  {/* QR code */}
+                  <div className="flex justify-center">
+                    <img
+                      src={qrUrl}
+                      alt="QPay QR"
+                      className="w-52 h-52 rounded-xl border-2 border-gray-100"
+                    />
+                  </div>
 
-                  {qpayInvoice.urls && qpayInvoice.urls.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 text-center">Эсвэл аппаа сонгоно уу</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {qpayInvoice.urls.slice(0, 6).map((u) => (
-                          <a key={u.name} href={u.link} target="_blank" rel="noopener noreferrer"
-                            className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-primary/40 hover:bg-primary/5 transition-colors">
-                            {u.logo && <img src={u.logo} alt={u.name} className="w-8 h-8 rounded-md object-cover" />}
-                            <span className="text-[10px] text-gray-600 text-center leading-tight">{u.name}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-center text-sm text-gray-500">
+                    Банкны апп-аараа QR кодыг уншуулна уу
+                  </p>
+
+                  {/* Open in browser button */}
+                  <a
+                    href={checkout.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Браузерт нээж төлөх
+                  </a>
 
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Төлбөр хүлээж байна...</span>
                   </div>
-                  <button onClick={() => { setQpayInvoice(null); qpayCreatingRef.current = false; createQPay() }}
-                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1">
+
+                  <button
+                    onClick={() => { setCheckout(null); qpayCreatingRef.current = false; createCheckout() }}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 py-1"
+                  >
                     <RefreshCw className="w-3.5 h-3.5" /> Шинэ QR үүсгэх
                   </button>
                 </div>
-              ) : (
-                <Button onClick={createQPay} className="w-full" size="lg">QPay invoice үүсгэх</Button>
-              )}
+              ) : null}
             </div>
           )}
 
-          {/* ── Bank transfer (Byl invoice) ── */}
+          {/* ── Bank transfer tab ── */}
           {method === "bank" && (
             <div className="space-y-4">
               {bankLoading ? (
-                <div className="text-center py-8 space-y-3">
+                <div className="text-center py-10 space-y-3">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                   <p className="text-sm text-gray-500">Нэхэмжлэл үүсгэж байна...</p>
                 </div>
               ) : bankError ? (
                 <div className="space-y-3">
-                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-2">
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center space-y-1">
                     <p className="text-sm font-semibold text-red-600">Алдаа гарлаа</p>
                     <p className="text-xs text-red-400">{bankError}</p>
                   </div>
@@ -291,7 +282,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                 </div>
               ) : bylInvoice ? (
                 <div className="space-y-4">
-                  {/* Reference — big and prominent */}
+                  {/* Reference number */}
                   <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 text-center space-y-2">
                     <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Гүйлгээний утга</p>
                     <div className="flex items-center justify-center gap-2">
@@ -304,14 +295,12 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                         {copied ? "Хуулагдлаа" : "Хуулах"}
                       </button>
                     </div>
-                    <p className="text-xs text-blue-400">Дээрх тоог гүйлгээний утганд заавал бичнэ үү</p>
+                    <p className="text-xs text-blue-400">Дээрх утгыг гүйлгээний утганд заавал бичнэ үү</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Дүн</span>
-                      <span className="font-bold text-gray-900">₮{course.price.toLocaleString()}</span>
-                    </div>
+                  <div className="flex justify-between text-sm px-1">
+                    <span className="text-gray-500">Дүн</span>
+                    <span className="font-bold">₮{course.price.toLocaleString()}</span>
                   </div>
 
                   {bylInvoice.url && (
@@ -337,9 +326,7 @@ export function PaymentModal({ course, onClose }: PaymentModalProps) {
                     <RefreshCw className="w-3.5 h-3.5" /> Шинэ нэхэмжлэл үүсгэх
                   </button>
                 </div>
-              ) : (
-                <Button onClick={createBylInvoice} className="w-full" size="lg">Нэхэмжлэл үүсгэх</Button>
-              )}
+              ) : null}
             </div>
           )}
         </CardContent>
