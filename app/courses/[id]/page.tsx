@@ -144,12 +144,12 @@ export default function CoursePage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Mobile-only CTA — shown below price on small screens */}
-            <div className="mt-6 lg:hidden">
+            {/* CTA button — mobile: full width, desktop: inline next to price */}
+            <div className="mt-6 flex flex-col lg:flex-row lg:items-center gap-3">
               {isEnrolled ? (
                 <Link
                   href={`/courses/${course._id}/learn`}
-                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-base transition-colors"
+                  className="flex items-center justify-center gap-2 w-full lg:w-auto py-3 px-8 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-base transition-colors"
                 >
                   <Play className="w-5 h-5" />
                   Хичээл үзэх
@@ -157,8 +157,9 @@ export default function CoursePage({ params }: PageProps) {
               ) : (
                 <a
                   href="#enrollment"
-                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base transition-colors"
+                  className="flex items-center justify-center gap-2 w-full lg:w-auto py-3 px-8 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base transition-colors"
                 >
+                  <Play className="w-5 h-5" />
                   Сургалтад элсэх — ₮{course.price?.toLocaleString() || "0"}
                 </a>
               )}
